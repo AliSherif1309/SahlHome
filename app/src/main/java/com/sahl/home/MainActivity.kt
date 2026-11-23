@@ -4,6 +4,7 @@ import android.app.WallpaperManager
 import android.content.ComponentName
 import android.content.Intent
 import android.graphics.drawable.Drawable
+import android.media.RingtoneManager
 import android.os.Bundle
 import android.text.TextUtils
 import android.view.Gravity
@@ -40,6 +41,9 @@ class MainActivity : SahlActivity() {
     private var currentSearchQuery = ""
     private val installedApps = ArrayList<AppItem>()
     private val iconStyleButtons = HashMap<Int, TextView>()
+    private val soundPlayButtons = HashMap<String, TextView>()
+    private val soundChips = ArrayList<Triple<String, Int, TextView>>()
+    private var pendingSoundAction: (() -> Unit)? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -597,5 +601,154 @@ class MainActivity : SahlActivity() {
                 }
             }
         }.start()
+    }
+
+    private fun buildSoundsSection(): View {
+        val c = card()
+        c.addView(pillButton("🔔  " + getString(R.string.apply_sound_pack), true) {
+            runWithWriteSettings {
+                if (SahlSounds.applyFullPack(this)) {
+                    refreshSoundUi()
+                    Toast.makeText(this, R.string.sound_pack_applied, Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(this, R.string.sound_failed, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(12) })
+
+        val typeOptions = listOf(
+            RingtoneManager.TYPE_RINGTONE to R.string.set_ringtone,
+            RingtoneManager.TYPE_NOTIFICATION to R.string.set_notification,
+            RingtoneManager.TYPE_ALARM to R.string.set_alarm
+        )
+
+        SahlSounds.items.forEachIndexed { idx, item ->
+            if (idx > 0) {
+                c.addView(
+                    View(this).apply { setBackgroundColor(col(R.color.line)) },
+                    LinearLayout.LayoutParams(-1, 1).apply { topMargin = px(10); bottomMargin = px(10) }
+                )
+            }
+
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+
+            val playBtn = text("▶", 14f, 0xFF072A22.toInt(), true).apply {
+                gravity = Gravity.CENTER
+                background = round(0xFFF5C84C.toInt(), 18f, col(R.color.gold))
+                setOnClickListener {
+                    SahlSounds.playPreview(this@MainActivity, item) {
+                        runOnUiThread { refreshSoundUi() }
+                    }
+                    refreshSoundUi()
+                }
+            }.press(18f)
+            soundPlayButtons[item.id] = playBtn
+            row.addView(playBtn, LinearLayout.LayoutParams(px(36), px(36)).apply { marginEnd = px(10) })
+
+            val info = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            info.addView(text(getString(item.titleRes), 14.5f, col(R.color.text), true))
+            info.addView(text(getString(item.descRes), 11.5f, col(R.color.sub)).apply {
+                setPadding(0, px(2), 0, 0)
+            })
+            row.addView(info, LinearLayout.LayoutParams(0, -2, 1f))
+            c.addView(row)
+
+            val chips = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(px(46), px(8), 0, 0)
+            }
+            for ((rType, labelRes) in typeOptions) {
+                val chip = text(getString(labelRes), 11f, col(R.color.text), true).apply {
+                    setPadding(px(10), px(5), px(10), px(5))
+                    setOnClickListener {
+                        runWithWriteSettings {
+                            if (SahlSounds.installAndSetDefault(this@MainActivity, item, rType)) {
+                                refreshSoundUi()
+                                Toast.makeText(this@MainActivity, R.string.sound_applied, Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(this@MainActivity, R.string.sound_failed, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                }.press(10f)
+                soundChips.add(Triple(item.id, rType, chip))
+                chips.addView(chip, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = px(6) })
+            }
+            c.addView(chips)
+        }
+
+        refreshSoundUi()
+        return c
+    }
+
+    private fun refreshSoundUi() {
+        val playing = SahlSounds.playingId
+        for ((id, btn) in soundPlayButtons) {
+            val isPlaying = id == playing
+            btn.text = if (isPlaying) "■" else "▶"
+            btn.setTextColor(if (isPlaying) 0xFFFFFFFF.toInt() else 0xFF072A22.toInt())
+            btn.background = round(
+                if (isPlaying) col(R.color.emerald) else 0xFFF5C84C.toInt(),
+                18f,
+                col(R.color.gold)
+            )
+        }
+
+        val activeRing = SahlSounds.activeId(this, RingtoneManager.TYPE_RINGTONE)
+        val activeNotif = SahlSounds.activeId(this, RingtoneManager.TYPE_NOTIFICATION)
+        val activeAlarm = SahlSounds.activeId(this, RingtoneManager.TYPE_ALARM)
+
+        for ((id, rType, chip) in soundChips) {
+            val active = when (rType) {
+                RingtoneManager.TYPE_RINGTONE -> id == activeRing
+                RingtoneManager.TYPE_ALARM -> id == activeAlarm
+                else -> id == activeNotif
+            }
+            val labelRes = when (rType) {
+                RingtoneManager.TYPE_RINGTONE -> R.string.set_ringtone
+                RingtoneManager.TYPE_ALARM -> R.string.set_alarm
+                else -> R.string.set_notification
+            }
+            chip.text = (if (active) "✓  " else "") + getString(labelRes)
+            chip.setTextColor(if (active) 0xFF072A22.toInt() else col(R.color.text))
+            chip.background = round(
+                if (active) 0xFFF5C84C.toInt() else col(R.color.tonal),
+                10f,
+                if (active) col(R.color.gold) else col(R.color.line)
+            )
+        }
+    }
+
+    private fun runWithWriteSettings(action: () -> Unit) {
+        if (SahlSounds.canWriteSettings(this)) {
+            action()
+        } else {
+            pendingSoundAction = action
+            Toast.makeText(this, R.string.sound_perm_prompt, Toast.LENGTH_LONG).show()
+            SahlSounds.openWriteSettings(this)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val pending = pendingSoundAction
+        if (pending != null && SahlSounds.canWriteSettings(this)) {
+            pendingSoundAction = null
+            pending()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        SahlSounds.stopPreview()
+        refreshSoundUi()
+    }
+
+    override fun onDestroy() {
+        SahlSounds.stopPreview()
+        super.onDestroy()
     }
 }
