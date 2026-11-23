@@ -45,7 +45,7 @@ object WallpaperEngine {
     )
 
     fun currentStyle(c: Context): String = Sahl.prefs(c).getString("wp_style", STYLE_GIRIH) ?: STYLE_GIRIH
-    fun setCurrentStyle(c: Context, style: String) = Sahl.prefs(c).edit().putString("wp_style", style).apply()
+    fun setCurrentStyle(c: Context, styleId: String) = Sahl.prefs(c).edit().putString("wp_style", styleId).apply()
 
     /** Determines current prayer phase (0 Fajr, 1 Dhuhr, 2 Asr, 3 Maghrib, 4 Isha) by hour of day. */
     fun currentPrayerPhase(): Int {
@@ -59,19 +59,19 @@ object WallpaperEngine {
         }
     }
 
-    fun isLightStyle(style: String, phase: Int = currentPrayerPhase()): Boolean = when (style) {
+    fun isLightStyle(styleId: String, phase: Int = currentPrayerPhase()): Boolean = when (styleId) {
         STYLE_CREAM -> true
         STYLE_PRAYER_SKY -> phase == 1 || phase == 2
         else -> false
     }
 
     /** Renders the given Sahl wallpaper onto any Canvas of size (w x h). */
-    fun draw(canvas: Canvas, w: Float, h: Float, style: String, prayerPhase: Int = currentPrayerPhase()) {
-        val light = isLightStyle(style, prayerPhase)
+    fun draw(canvas: Canvas, w: Float, h: Float, styleId: String, prayerPhase: Int = currentPrayerPhase()) {
+        val light = isLightStyle(styleId, prayerPhase)
         val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG)
 
         // 1. Background gradient
-        when (style) {
+        when (styleId) {
             STYLE_PRAYER_SKY -> {
                 val colors = when (prayerPhase) {
                     0 -> intArrayOf(0xFF0B1D24.toInt(), 0xFF164A41.toInt(), 0xFF061411.toInt())
@@ -118,12 +118,12 @@ object WallpaperEngine {
 
         // 2. Islamic 12-fold Girih Rosette
         val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
+            this.style = Paint.Style.STROKE
             color = strokeGold
             strokeWidth = max(1.5f, w / 360f)
         }
         val cx = w * 0.5f
-        val cy = if (style == STYLE_DUSK) h * 0.30f else h * 0.44f
+        val cy = if (styleId == STYLE_DUSK) h * 0.30f else h * 0.44f
         val baseR = w * 0.42f
         val folds = 12
 
@@ -149,10 +149,10 @@ object WallpaperEngine {
         }
 
         // 3. Desert Dusk Dunes & Crescent Moon
-        if (style == STYLE_DUSK || style == STYLE_PRAYER_SKY) {
+        if (styleId == STYLE_DUSK || styleId == STYLE_PRAYER_SKY) {
             val moonLayer = canvas.saveLayer(0f, 0f, w, h, null)
             val moonPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.FILL
+                this.style = Paint.Style.FILL
                 color = if (light) 0xFFD4AF37.toInt() else 0xFFF5C84C.toInt()
             }
             val mx = w * 0.5f
@@ -171,9 +171,9 @@ object WallpaperEngine {
             } else {
                 intArrayOf(0xFF0E392F.toInt(), 0xFF0A2922.toInt(), 0xFF061814.toInt())
             }
-            val duneFill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+            val duneFill = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.style = Paint.Style.FILL }
             val duneEdge = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
+                this.style = Paint.Style.STROKE
                 color = accentGold
                 strokeWidth = max(2f, w / 280f)
             }
@@ -200,7 +200,7 @@ object WallpaperEngine {
 
         // 4. Mihrab Arch Frame
         val archPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
+            this.style = Paint.Style.STROKE
             color = accentGold
             strokeWidth = max(2f, w / 250f)
         }
@@ -219,12 +219,12 @@ object WallpaperEngine {
         canvas.drawPath(archPath, archPaint)
 
         // 5. Qibla Horizon Compass Motif
-        if (style == STYLE_QIBLA) {
+        if (styleId == STYLE_QIBLA) {
             val qx = w * 0.5f
             val qy = h * 0.65f
             val qr = w * 0.24f
             val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
+                this.style = Paint.Style.STROKE
                 color = 0x99F5C84C.toInt()
                 strokeWidth = max(2f, w / 240f)
             }
@@ -241,7 +241,7 @@ object WallpaperEngine {
                 close()
             }
             val arrowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.FILL
+                this.style = Paint.Style.FILL
                 color = 0xFFF5C84C.toInt()
             }
             canvas.drawPath(arrow, arrowPaint)
@@ -250,51 +250,53 @@ object WallpaperEngine {
     }
 
     /** Creates a Bitmap of the requested Sahl wallpaper style. */
-    fun renderBitmap(width: Int, height: Int, style: String): Bitmap {
+    fun renderBitmap(width: Int, height: Int, styleId: String): Bitmap {
         val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
-        draw(canvas, width.toFloat(), height.toFloat(), style)
+        draw(canvas, width.toFloat(), height.toFloat(), styleId)
         return bmp
     }
 
     /** Applies the Sahl wallpaper to Home Screen, Lock Screen, or Both. */
-    fun applyWallpaper(c: Context, style: String, which: Int): Boolean = try {
+    fun applyWallpaper(c: Context, styleId: String, which: Int): Boolean = try {
         val dm = c.resources.displayMetrics
         val w = max(1080, dm.widthPixels)
         val h = max(2400, dm.heightPixels)
-        val bmp = renderBitmap(w, h, style)
+        val bmp = renderBitmap(w, h, styleId)
         val wm = WallpaperManager.getInstance(c)
         wm.setBitmap(bmp, null, true, which)
-        setCurrentStyle(c, style)
+        setCurrentStyle(c, styleId)
         true
     } catch (e: Exception) {
         false
     }
 
     /** Exports a 2160x3840 4K PNG wallpaper into Pictures/SahlWallpapers. */
-    fun save4KToGallery(c: Context, style: String): Boolean = try {
-        val bmp = renderBitmap(2160, 3840, style)
-        val name = "Sahl_Wallpaper_${style}_4K_${System.currentTimeMillis()}.png"
-        val cv = ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, name)
-            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-            if (Build.VERSION.SDK_INT >= 29) {
-                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/SahlWallpapers")
-                put(MediaStore.Images.Media.IS_PENDING, 1)
+    fun save4KToGallery(c: Context, styleId: String): Boolean {
+        return try {
+            val bmp = renderBitmap(2160, 3840, styleId)
+            val name = "Sahl_Wallpaper_${styleId}_4K_${System.currentTimeMillis()}.png"
+            val cv = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, name)
+                put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+                if (Build.VERSION.SDK_INT >= 29) {
+                    put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/SahlWallpapers")
+                    put(MediaStore.Images.Media.IS_PENDING, 1)
+                }
             }
+            val uri = c.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, cv) ?: return false
+            c.contentResolver.openOutputStream(uri)?.use { out ->
+                bmp.compress(Bitmap.CompressFormat.PNG, 100, out)
+            }
+            if (Build.VERSION.SDK_INT >= 29) {
+                cv.clear()
+                cv.put(MediaStore.Images.Media.IS_PENDING, 0)
+                c.contentResolver.update(uri, cv, null, null)
+            }
+            true
+        } catch (e: Exception) {
+            false
         }
-        val uri = c.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, cv) ?: return false
-        c.contentResolver.openOutputStream(uri)?.use { out ->
-            bmp.compress(Bitmap.CompressFormat.PNG, 100, out)
-        }
-        if (Build.VERSION.SDK_INT >= 29) {
-            cv.clear()
-            cv.put(MediaStore.Images.Media.IS_PENDING, 0)
-            c.contentResolver.update(uri, cv, null, null)
-        }
-        true
-    } catch (e: Exception) {
-        false
     }
 }
 
