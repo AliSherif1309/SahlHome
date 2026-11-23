@@ -11,8 +11,11 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.provider.Settings
+import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 /**
  * Sahl System Sound Pack & Ringtone Manager.
@@ -262,5 +265,79 @@ object SahlSounds {
             }
         }
         return null
+    }
+
+    /** Exports all Sahl sound pack WAV files to Music/SahlSoundPack so any app or file manager can pick them. */
+    fun exportAllToDevice(context: Context): Int {
+        var count = 0
+        val resolver = context.contentResolver
+        for (item in items) {
+            try {
+                val title = context.getString(item.titleRes)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val values = ContentValues().apply {
+                        put(MediaStore.Audio.Media.DISPLAY_NAME, item.fileName)
+                        put(MediaStore.Audio.Media.TITLE, title)
+                        put(MediaStore.Audio.Media.ARTIST, "Sahl")
+                        put(MediaStore.Audio.Media.MIME_TYPE, "audio/wav")
+                        put(MediaStore.Audio.Media.RELATIVE_PATH, "${Environment.DIRECTORY_MUSIC}/SahlSoundPack")
+                        put(MediaStore.Audio.Media.IS_RINGTONE, 1)
+                        put(MediaStore.Audio.Media.IS_NOTIFICATION, 1)
+                        put(MediaStore.Audio.Media.IS_ALARM, 1)
+                        put(MediaStore.Audio.Media.IS_MUSIC, 1)
+                        put(MediaStore.Audio.Media.IS_PENDING, 1)
+                    }
+                    val uri = resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, values) ?: continue
+                    try {
+                        resolver.openOutputStream(uri)?.use { out ->
+                            context.resources.openRawResource(item.rawRes).use { input -> input.copyTo(out) }
+                        }
+                        values.clear()
+                        values.put(MediaStore.Audio.Media.IS_PENDING, 0)
+                        resolver.update(uri, values, null, null)
+                        count++
+                    } catch (_: Exception) {
+                        try { resolver.delete(uri, null, null) } catch (_: Exception) {}
+                    }
+                } else {
+                    @Suppress("DEPRECATION")
+                    val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), "SahlSoundPack").apply { mkdirs() }
+                    val outFile = File(dir, item.fileName)
+                    context.resources.openRawResource(item.rawRes).use { input ->
+                        FileOutputStream(outFile).use { out -> input.copyTo(out) }
+                    }
+                    count++
+                }
+            } catch (_: Exception) {
+            }
+        }
+        return count
+    }
+
+    /** Packages all Sahl sound pack WAV files into Sahl_Sound_Pack.zip and opens the Android share sheet. */
+    fun sharePackZip(context: Context): Boolean {
+        return try {
+            val zipFile = File(context.cacheDir, "Sahl_Sound_Pack.zip")
+            ZipOutputStream(FileOutputStream(zipFile)).use { zos ->
+                for (item in items) {
+                    zos.putNextEntry(ZipEntry(item.fileName))
+                    context.resources.openRawResource(item.rawRes).use { input ->
+                        input.copyTo(zos)
+                    }
+                    zos.closeEntry()
+                }
+            }
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", zipFile)
+            val share = Intent(Intent.ACTION_SEND).apply {
+                type = "application/zip"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, "Sahl Sound Pack")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(share, context.getString(R.string.share_sound_pack)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            true
+        } catch (_: Exception) {
+            false
+        }
     }
 }

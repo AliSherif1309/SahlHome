@@ -83,4 +83,7 @@
     <string name="snd_oud_desc">جملة قصيرة دافئة على مقام البياتي (إشعارات)</string>
     <string name="snd_fajr_title">إشراقة الفجر</string>
     <string name="snd_fajr_desc">أجراس صباحية متصاعدة وهادئة للاستيقاظ المريح (منبه)</string>
+    <string name="export_sound_pack">حفظ في مجلد الموسيقى</string>
+    <string name="share_sound_pack">مشاركة الباقة (.zip)</string>
+    <string name="sound_pack_exported">تم حفظ ٥ أصوات سهل في Music/SahlSoundPack</string>
 </resources>
