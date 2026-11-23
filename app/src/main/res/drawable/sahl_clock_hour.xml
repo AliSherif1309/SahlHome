@@ -4,11 +4,11 @@
     android:height="200dp"
     android:viewportWidth="200"
     android:viewportHeight="200">
-    <!-- Brushed Gold Hour Hand -->
+    <!-- Long, Bold Brushed Gold Hour Hand -->
     <path
-        android:pathData="M96.5,108 L97.5,52 L100,46 L102.5,52 L103.5,108 Z"
+        android:pathData="M95.5,114 L96.8,40 L100,33 L103.2,40 L104.5,114 Z"
         android:fillColor="#F5C84C" />
     <path
-        android:pathData="M100,93 A7,7 0,1 1,99.9 93 Z"
+        android:pathData="M100,92 A8,8 0,1 1,99.9 92 Z"
         android:fillColor="#F5C84C" />
 </vector>

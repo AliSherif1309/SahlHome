@@ -4,30 +4,55 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center_horizontal"
-    android:padding="4dp">
+    android:padding="2dp">
 
-    <AnalogClock
-        android:id="@+id/w_aclock_view"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:dial="@drawable/sahl_clock_dial_num"
-        android:hand_hour="@drawable/sahl_clock_hour"
-        android:hand_minute="@drawable/sahl_clock_minute" />
+        android:layout_weight="1">
+
+        <AnalogClock
+            android:id="@+id/w_aclock_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:dial="@drawable/sahl_clock_dial_num"
+            android:hand_hour="@drawable/sahl_clock_hour"
+            android:hand_minute="@drawable/sahl_clock_minute" />
+
+        <!-- 24-Hour Digital Clock inside the lower dial -->
+        <TextClock
+            android:id="@+id/w_aclock_digital"
+            android:fontFamily="@font/thmanyah"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal|bottom"
+            android:layout_marginBottom="36dp"
+            android:paddingStart="7dp"
+            android:paddingEnd="7dp"
+            android:paddingTop="1dp"
+            android:paddingBottom="1dp"
+            android:background="@drawable/widget_pill_bg"
+            android:format24Hour="HH:mm"
+            android:format12Hour="HH:mm"
+            android:textColor="#FFF8E7"
+            android:textSize="11.5sp"
+            android:textStyle="bold" />
+    </FrameLayout>
 
     <TextView
         android:id="@+id/w_aclock_hijri"
         android:fontFamily="@font/thmanyah"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingTop="2dp"
+        android:paddingTop="1dp"
         android:gravity="center"
         android:textColor="#F5C84C"
         android:shadowColor="#CC000000"
         android:shadowDx="0"
         android:shadowDy="1"
         android:shadowRadius="4"
-        android:textSize="11.5sp"
+        android:textSize="11sp"
         android:textStyle="bold"
         android:maxLines="1" />
 </LinearLayout>
