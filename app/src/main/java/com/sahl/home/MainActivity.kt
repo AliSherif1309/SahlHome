@@ -247,8 +247,10 @@ class MainActivity : SahlActivity() {
         }, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = px(6) })
         row.addView(pillButton(getString(R.string.pin_folder_btn), true) {
             val cleanTitle = title.removePrefix("۞  ")
-            if (SahlThemeShortcuts.pinFolderPopupShortcut(this, folderId, cleanTitle)) {
+            if (SahlThemeShortcuts.pinFolderIconNoBadge(this, folderId, cleanTitle)) {
                 Toast.makeText(this, R.string.shortcut_pinned, Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, R.string.widget_pin_guide, Toast.LENGTH_LONG).show()
             }
         })
         return row
@@ -302,8 +304,10 @@ class MainActivity : SahlActivity() {
                     setPadding(0, px(4), 0, 0)
                 })
                 setOnClickListener {
-                    if (SahlThemeShortcuts.pinThemedAppShortcut(this@MainActivity, app.pkg, app.activity, app.label, app.icon)) {
+                    if (SahlThemeShortcuts.pinThemedAppIconNoBadge(this@MainActivity, app.pkg, app.activity, app.label)) {
                         Toast.makeText(this@MainActivity, R.string.shortcut_pinned, Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this@MainActivity, R.string.widget_pin_guide, Toast.LENGTH_LONG).show()
                     }
                 }
             }.press(14f)

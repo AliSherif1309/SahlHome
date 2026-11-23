@@ -74,6 +74,16 @@
             android:excludeFromRecents="true"
             android:taskAffinity="" />
 
+        <!-- Configuration picker for the 1x1 Badgeless Sahl Icon Widget -->
+        <activity
+            android:name=".ThemedIconConfigureActivity"
+            android:exported="true"
+            android:label="@string/w_icon_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <!-- Widget 1: Sahl Islamic Sanctuary (Hijri, Daily Ayah & Adhkar) -->
         <receiver
             android:name=".SanctuaryWidget"
@@ -112,6 +122,19 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_sahl_bar_info" />
+        </receiver>
+
+        <!-- Widget 4: 1x1 Badgeless Sahl Emerald & Gold Icon (App or Folder — NO corner home logo!) -->
+        <receiver
+            android:name=".ThemedIconWidget"
+            android:exported="true"
+            android:label="@string/w_icon_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_themed_icon_info" />
         </receiver>
 
         <!-- Dynamic Prayer Sky Live Wallpaper Service -->
