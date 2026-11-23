@@ -3,14 +3,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center"
-    android:padding="6dp">
+    android:gravity="center_horizontal"
+    android:padding="4dp">
 
     <AnalogClock
         android:id="@+id/w_aclock_view"
-        android:layout_width="156dp"
-        android:layout_height="156dp"
-        android:dial="@drawable/sahl_clock_dial"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:dial="@drawable/sahl_clock_dial_num"
         android:hand_hour="@drawable/sahl_clock_hour"
         android:hand_minute="@drawable/sahl_clock_minute" />
 
@@ -19,7 +20,7 @@
         android:fontFamily="@font/thmanyah"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingTop="4dp"
+        android:paddingTop="2dp"
         android:gravity="center"
         android:textColor="#F5C84C"
         android:shadowColor="#CC000000"

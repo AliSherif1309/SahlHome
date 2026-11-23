@@ -261,6 +261,13 @@ object SahlWidgets {
             val appIcon = try { c.packageManager.getApplicationIcon(pkg) } catch (_: Exception) { null }
             val bmp = SahlThemeShortcuts.createSahlSealIconBitmap(appIcon, if (appIcon == null) "۞" else null, styleMode)
             v.setImageViewBitmap(R.id.w_icon_img, bmp)
+            val count = BadgeListenerService.countFor(pkg)
+            if (count > 0) {
+                v.setTextViewText(R.id.w_icon_badge, if (count > 99) "99+" else count.toString())
+                v.setViewVisibility(R.id.w_icon_badge, View.VISIBLE)
+            } else {
+                v.setViewVisibility(R.id.w_icon_badge, View.GONE)
+            }
             val launchIntent = if (act.isNotEmpty()) {
                 Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
                     .setComponent(ComponentName(pkg, act)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -275,6 +282,7 @@ object SahlWidgets {
         } else {
             val bmp = SahlThemeShortcuts.createSahlSealIconBitmap(null, "۞", styleMode)
             v.setImageViewBitmap(R.id.w_icon_img, bmp)
+            v.setViewVisibility(R.id.w_icon_badge, View.GONE)
             v.setOnClickPendingIntent(R.id.w_icon_root, popupPendingIntent(c, 4000 + appWidgetId, folderId))
         }
         return v

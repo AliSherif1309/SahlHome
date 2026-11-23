@@ -50,7 +50,10 @@
     <string name="sec_icon_styler">٤. صانع أيقونات سهل بالزمرد والذهب</string>
     <string name="sec_icon_styler_sub">اختر شكل الإطار الذهبي وإظهار أو إخفاء اسم التطبيق، ثم اضغط على أي تطبيق لتثبيته</string>
     <string name="icon_label_toggle">إظهار اسم التطبيق تحت الأيقونة</string>
-    <string name="icon_dockable_toggle">اختصار قابل للوضع في الشريط السفلي</string>
+    <string name="icon_dockable_toggle">اختصار للشريط السفلي (يضيف النظام شعارًا صغيرًا)</string>
+    <string name="badge_service_name">شارات إشعارات ثيم سهل</string>
+    <string name="enable_badges">شارات الإشعارات (واتساب وغيرها): اضغط للتفعيل</string>
+    <string name="badges_enabled">شارات الإشعارات: مفعّلة ✓</string>
     <string name="style_fill">إطار ذهبي كامل</string>
     <string name="style_tint">شعار ذهبي على زمردي</string>
     <string name="style_seal">ختم زمردي</string>
