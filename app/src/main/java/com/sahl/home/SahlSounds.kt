@@ -150,10 +150,59 @@ object SahlSounds {
         else -> "sound_active_notification"
     }
 
+    private fun prevHasKey(ringtoneType: Int): String = when (ringtoneType) {
+        RingtoneManager.TYPE_RINGTONE -> "sound_has_prev_ringtone"
+        RingtoneManager.TYPE_ALARM -> "sound_has_prev_alarm"
+        else -> "sound_has_prev_notification"
+    }
+
+    private fun prevUriKey(ringtoneType: Int): String = when (ringtoneType) {
+        RingtoneManager.TYPE_RINGTONE -> "sound_prev_uri_ringtone"
+        RingtoneManager.TYPE_ALARM -> "sound_prev_uri_alarm"
+        else -> "sound_prev_uri_notification"
+    }
+
+    fun hasPrevious(context: Context, ringtoneType: Int): Boolean =
+        Sahl.prefs(context).getBoolean(prevHasKey(ringtoneType), false)
+
+    private fun savePreviousIfNeeded(context: Context, ringtoneType: Int) {
+        val p = Sahl.prefs(context)
+        if (p.getBoolean(prevHasKey(ringtoneType), false)) return
+        val current = try {
+            RingtoneManager.getActualDefaultRingtoneUri(context, ringtoneType)
+        } catch (_: Exception) {
+            null
+        }
+        p.edit()
+            .putBoolean(prevHasKey(ringtoneType), true)
+            .putString(prevUriKey(ringtoneType), current?.toString() ?: "")
+            .apply()
+    }
+
+    fun restorePrevious(context: Context, ringtoneType: Int): Boolean {
+        if (!canWriteSettings(context)) return false
+        val p = Sahl.prefs(context)
+        if (!p.getBoolean(prevHasKey(ringtoneType), false)) return false
+        return try {
+            val saved = p.getString(prevUriKey(ringtoneType), "") ?: ""
+            val uri = if (saved.isBlank()) null else Uri.parse(saved)
+            RingtoneManager.setActualDefaultRingtoneUri(context, ringtoneType, uri)
+            p.edit()
+                .remove(prefKeyForType(ringtoneType))
+                .remove(prevHasKey(ringtoneType))
+                .remove(prevUriKey(ringtoneType))
+                .apply()
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     fun installAndSetDefault(context: Context, item: SoundItem, ringtoneType: Int): Boolean {
         if (!canWriteSettings(context)) return false
         return try {
             val uri = ensureMediaStoreUri(context, item) ?: return false
+            savePreviousIfNeeded(context, ringtoneType)
             RingtoneManager.setActualDefaultRingtoneUri(context, ringtoneType, uri)
             Sahl.prefs(context).edit().putString(prefKeyForType(ringtoneType), item.id).apply()
             true

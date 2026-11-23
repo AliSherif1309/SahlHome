@@ -92,4 +92,6 @@
     <string name="wp_noor_lock_d">سماء هادئة لساعة القفل مع هلال ذهبي ونجوم وكثبان</string>
     <string name="w_amb_title">شريط سهل المحيطي (4×1)</string>
     <string name="w_amb_desc">شريط مدمج للشاشة الرئيسية والقفل يعرض الصلاة القادمة والهجري والذكر (اضغط لتغيير الذكر).</string>
+    <string name="restore_prev_title">الرجوع إلى نغمتك السابقة:</string>
+    <string name="sound_restored">تمت استعادة نغمتك السابقة</string>
 </resources>
