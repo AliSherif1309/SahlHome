@@ -251,6 +251,10 @@ class MainActivity : SahlActivity() {
         }
         col.addView(foldersCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(18) })
 
+        // ────────────────── SECTION 5: SAHL SYSTEM SOUND PACK & RINGTONE MANAGER ──────────────────
+        col.addView(sectionHeader(getString(R.string.sec_sounds), getString(R.string.sec_sounds_sub)))
+        col.addView(buildSoundsSection(), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(18) })
+
         // ────────────────── SECTION 4: SAHL EMERALD & GOLD ICON STYLER ──────────────────
         col.addView(sectionHeader(getString(R.string.sec_icon_styler), getString(R.string.sec_icon_styler_sub)))
         val stylerCard = card()
@@ -614,7 +618,19 @@ class MainActivity : SahlActivity() {
                     Toast.makeText(this, R.string.sound_failed, Toast.LENGTH_SHORT).show()
                 }
             }
-        }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(12) })
+        }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(8) })
+
+        val exportRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        exportRow.addView(pillButton("💾  " + getString(R.string.export_sound_pack), false) {
+            val n = SahlSounds.exportAllToDevice(this)
+            Toast.makeText(this, if (n > 0) getString(R.string.sound_pack_exported) else getString(R.string.sound_failed), Toast.LENGTH_LONG).show()
+        }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = px(5) })
+        exportRow.addView(pillButton("📤  " + getString(R.string.share_sound_pack), false) {
+            if (!SahlSounds.sharePackZip(this)) {
+                Toast.makeText(this, R.string.sound_failed, Toast.LENGTH_SHORT).show()
+            }
+        }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = px(5) })
+        c.addView(exportRow, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(12) })
 
         val typeOptions = listOf(
             RingtoneManager.TYPE_RINGTONE to R.string.set_ringtone,

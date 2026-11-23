@@ -83,4 +83,7 @@
     <string name="snd_oud_desc">Warm short Maqam Bayati plucked phrase (Notification)</string>
     <string name="snd_fajr_title">Fajr Dawn Awakening</string>
     <string name="snd_fajr_desc">Soft ascending morning chimes &amp; warm pad for calm waking (Alarm)</string>
+    <string name="export_sound_pack">Save to Music Folder</string>
+    <string name="share_sound_pack">Share Pack (.zip)</string>
+    <string name="sound_pack_exported">Saved 5 Sahl sounds to Music/SahlSoundPack</string>
 </resources>
