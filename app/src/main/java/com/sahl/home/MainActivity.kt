@@ -164,6 +164,7 @@ class MainActivity : SahlActivity() {
                 getString(R.string.w_aclock_desc),
                 AnalogClockWidget::class.java,
                 listOf(
+                    Triple("w_aclock_digital", getString(R.string.opt_clock) + " (24h)", true),
                     Triple("w_aclock_hijri", getString(R.string.opt_hijri), true)
                 )
             ),

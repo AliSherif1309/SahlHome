@@ -113,6 +113,7 @@ object SahlWidgets {
     fun buildAnalogClockViews(ctx: Context): RemoteViews {
         val c = Sahl.wrap(ctx)
         val v = RemoteViews(c.packageName, R.layout.widget_analog_clock)
+        v.setViewVisibility(R.id.w_aclock_digital, vis(opt(c, "w_aclock_digital", true)))
         v.setTextViewText(R.id.w_aclock_hijri, hijriText(c).removePrefix("۞  "))
         v.setViewVisibility(R.id.w_aclock_hijri, vis(opt(c, "w_aclock_hijri", true)))
         v.setOnClickPendingIntent(R.id.w_aclock_root, launchPkgPendingIntent(c, 80, "com.sahl.adhan"))
