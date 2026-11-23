@@ -157,6 +157,19 @@ class MainActivity : SahlActivity() {
 
         val ar = resources.configuration.locales[0].language == "ar"
 
+        // Widget 0: Sahl Analog Clock (2x2)
+        col.addView(
+            buildWidgetGalleryCard(
+                "🕰️  " + getString(R.string.w_aclock_title),
+                getString(R.string.w_aclock_desc),
+                AnalogClockWidget::class.java,
+                listOf(
+                    Triple("w_aclock_hijri", getString(R.string.opt_hijri), true)
+                )
+            ),
+            LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) }
+        )
+
         // Widget 1: Sahl Islamic Clock (4x2)
         col.addView(
             buildWidgetGalleryCard(
@@ -262,6 +275,23 @@ class MainActivity : SahlActivity() {
         }
         labelToggleRow.addView(labelSwitch)
         stylerCard.addView(labelToggleRow)
+
+        // Toggle 1b: Dockable Shortcut mode (so user can place in Bottom Dock if desired)
+        val dockableRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(px(4), 0, px(4), px(10))
+        }
+        dockableRow.addView(text(getString(R.string.icon_dockable_toggle), 13.5f, col(R.color.sub), true),
+            LinearLayout.LayoutParams(0, -2, 1f))
+        val dockableSwitch = Switch(this).apply {
+            isChecked = SahlThemeShortcuts.defaultDockableMode(this@MainActivity)
+            setOnCheckedChangeListener { _, checked ->
+                SahlThemeShortcuts.setDefaultDockableMode(this@MainActivity, checked)
+            }
+        }
+        dockableRow.addView(dockableSwitch)
+        stylerCard.addView(dockableRow)
 
         // Toggle 2: 3 Icon Border Styles (Full Gold Border / Gold Glyph on Emerald / Emerald Seal)
         val styleModesRow = LinearLayout(this).apply {

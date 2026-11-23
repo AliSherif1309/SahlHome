@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+
+    <!-- Outer Deep Emerald Dial -->
+    <path android:pathData="M100,6 A94,94 0,1 1,99.9 6 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="100"
+                android:centerY="84"
+                android:gradientRadius="105"
+                android:startColor="#136E56"
+                android:endColor="#072D24" />
+        </aapt:attr>
+    </path>
+
+    <!-- Outer Gold Ring -->
+    <path
+        android:pathData="M100,8 A92,92 0,1 1,99.9 8 Z"
+        android:strokeWidth="3"
+        android:strokeColor="#D4AF37"
+        android:fillColor="#00000000" />
+
+    <!-- Subtle Inner Gold Ring -->
+    <path
+        android:pathData="M100,18 A82,82 0,1 1,99.9 18 Z"
+        android:strokeWidth="1"
+        android:strokeColor="#55F5C84C"
+        android:fillColor="#00000000" />
+
+    <!-- 12 O'Clock Gold Diamond Crown -->
+    <path
+        android:pathData="M100,15 L105,23 L100,31 L95,23 Z"
+        android:fillColor="#F5C84C" />
+
+    <!-- 3, 6, 9 O'Clock Major Gold Markers -->
+    <path android:pathData="M173,98.5h12v3h-12z" android:fillColor="#F5C84C" />
+    <path android:pathData="M98.5,173h3v12h-3z" android:fillColor="#F5C84C" />
+    <path android:pathData="M15,98.5h12v3h-12z" android:fillColor="#F5C84C" />
+
+    <!-- Minor Hour Ticks (1, 2, 4, 5, 7, 8, 10, 11) -->
+    <group android:pivotX="100" android:pivotY="100" android:rotation="30">
+        <path android:pathData="M99,18h2v8h-2z" android:fillColor="#99F5C84C" />
+    </group>
+    <group android:pivotX="100" android:pivotY="100" android:rotation="60">
+        <path android:pathData="M99,18h2v8h-2z" android:fillColor="#99F5C84C" />
+    </group>
+    <group android:pivotX="100" android:pivotY="100" android:rotation="120">
+        <path android:pathData="M99,18h2v8h-2z" android:fillColor="#99F5C84C" />
+    </group>
+    <group android:pivotX="100" android:pivotY="100" android:rotation="150">
+        <path android:pathData="M99,18h2v8h-2z" android:fillColor="#99F5C84C" />
+    </group>
+    <group android:pivotX="100" android:pivotY="100" android:rotation="210">
+        <path android:pathData="M99,18h2v8h-2z" android:fillColor="#99F5C84C" />
+    </group>
+    <group android:pivotX="100" android:pivotY="100" android:rotation="240">
+        <path android:pathData="M99,18h2v8h-2z" android:fillColor="#99F5C84C" />
+    </group>
+    <group android:pivotX="100" android:pivotY="100" android:rotation="300">
+        <path android:pathData="M99,18h2v8h-2z" android:fillColor="#99F5C84C" />
+    </group>
+    <group android:pivotX="100" android:pivotY="100" android:rotation="330">
+        <path android:pathData="M99,18h2v8h-2z" android:fillColor="#99F5C84C" />
+    </group>
+</vector>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <!-- Brushed Gold Hour Hand -->
+    <path
+        android:pathData="M96.5,108 L97.5,52 L100,46 L102.5,52 L103.5,108 Z"
+        android:fillColor="#F5C84C" />
+    <path
+        android:pathData="M100,93 A7,7 0,1 1,99.9 93 Z"
+        android:fillColor="#F5C84C" />
+</vector>

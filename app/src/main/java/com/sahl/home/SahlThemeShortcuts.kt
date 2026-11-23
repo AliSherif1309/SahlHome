@@ -38,6 +38,9 @@ object SahlThemeShortcuts {
     fun defaultIconStyle(c: Context): Int = Sahl.prefs(c).getInt("icon_style_mode", ICON_STYLE_FILL)
     fun setDefaultIconStyle(c: Context, mode: Int) = Sahl.prefs(c).edit().putInt("icon_style_mode", mode).apply()
 
+    fun defaultDockableMode(c: Context): Boolean = Sahl.prefs(c).getBoolean("icon_dockable_mode", false)
+    fun setDefaultDockableMode(c: Context, dockable: Boolean) = Sahl.prefs(c).edit().putBoolean("icon_dockable_mode", dockable).apply()
+
     /**
      * Renders a 192x192 Bitmap where the gold border is on the exact outer edge of the squircle
      * (matching the Sahl adaptive launcher icons in the dock!).
@@ -205,6 +208,23 @@ object SahlThemeShortcuts {
     }
 
     fun pinThemedAppIconNoBadge(c: Context, pkg: String, activity: String, label: String): Boolean {
+        if (defaultDockableMode(c)) {
+            val sm = c.getSystemService(android.content.pm.ShortcutManager::class.java) ?: return false
+            if (!sm.isRequestPinShortcutSupported) return false
+            val appIcon = try { c.packageManager.getApplicationIcon(pkg) } catch (_: Exception) { null }
+            val bmp = createSahlSealIconBitmap(appIcon, if (appIcon == null) "۞" else null, defaultIconStyle(c))
+            val launchIntent = Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_LAUNCHER)
+                .setComponent(ComponentName(pkg, activity))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val info = android.content.pm.ShortcutInfo.Builder(c, "sahl_dock_${pkg}_${System.currentTimeMillis()}")
+                .setShortLabel(if (defaultShowLabel(c)) label.take(18) else " ")
+                .setLongLabel(label)
+                .setIcon(android.graphics.drawable.Icon.createWithBitmap(bmp))
+                .setIntent(launchIntent)
+                .build()
+            return sm.requestPinShortcut(info, null)
+        }
         savePendingIconConfig(c, "app", pkg, activity, label, "", defaultShowLabel(c), defaultIconStyle(c))
         return try {
             val awm = AppWidgetManager.getInstance(c)
@@ -217,6 +237,23 @@ object SahlThemeShortcuts {
     }
 
     fun pinFolderIconNoBadge(c: Context, folderId: String, title: String): Boolean {
+        if (defaultDockableMode(c)) {
+            val sm = c.getSystemService(android.content.pm.ShortcutManager::class.java) ?: return false
+            if (!sm.isRequestPinShortcutSupported) return false
+            val bmp = createSahlSealIconBitmap(null, "۞", defaultIconStyle(c))
+            val popupIntent = Intent(c, SahlPopupActivity::class.java).apply {
+                action = Intent.ACTION_VIEW
+                putExtra("folder", folderId)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            }
+            val info = android.content.pm.ShortcutInfo.Builder(c, "sahl_dfolder_${folderId}_${System.currentTimeMillis()}")
+                .setShortLabel(if (defaultShowLabel(c)) title.take(18) else " ")
+                .setLongLabel(title)
+                .setIcon(android.graphics.drawable.Icon.createWithBitmap(bmp))
+                .setIntent(popupIntent)
+                .build()
+            return sm.requestPinShortcut(info, null)
+        }
         savePendingIconConfig(c, "folder", "", "", title, folderId, defaultShowLabel(c), defaultIconStyle(c))
         return try {
             val awm = AppWidgetManager.getInstance(c)

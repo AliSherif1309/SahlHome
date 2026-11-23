@@ -109,6 +109,16 @@ object SahlWidgets {
         return PendingIntent.getActivity(c, reqCode, i, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
     }
 
+    /** Widget 0: Sahl Analog Clock (`ساعة سهل التناظرية` — 2×2) */
+    fun buildAnalogClockViews(ctx: Context): RemoteViews {
+        val c = Sahl.wrap(ctx)
+        val v = RemoteViews(c.packageName, R.layout.widget_analog_clock)
+        v.setTextViewText(R.id.w_aclock_hijri, hijriText(c).removePrefix("۞  "))
+        v.setViewVisibility(R.id.w_aclock_hijri, vis(opt(c, "w_aclock_hijri", true)))
+        v.setOnClickPendingIntent(R.id.w_aclock_root, launchPkgPendingIntent(c, 80, "com.sahl.adhan"))
+        return v
+    }
+
     /** Widget 1: Sahl Islamic Clock (`ساعة سهل الإسلامية` — 4×2) */
     fun buildClockViews(ctx: Context): RemoteViews {
         val c = Sahl.wrap(ctx)
@@ -279,6 +289,8 @@ object SahlWidgets {
 
     fun updateAll(ctx: Context) {
         val m = AppWidgetManager.getInstance(ctx)
+        m.getAppWidgetIds(ComponentName(ctx, AnalogClockWidget::class.java))
+            .forEach { m.updateAppWidget(it, buildAnalogClockViews(ctx)) }
         m.getAppWidgetIds(ComponentName(ctx, ClockWidget::class.java))
             .forEach { m.updateAppWidget(it, buildClockViews(ctx)) }
         m.getAppWidgetIds(ComponentName(ctx, SanctuaryWidget::class.java))
@@ -289,6 +301,12 @@ object SahlWidgets {
             .forEach { m.updateAppWidget(it, buildSahlBarViews(ctx)) }
         m.getAppWidgetIds(ComponentName(ctx, ThemedIconWidget::class.java))
             .forEach { m.updateAppWidget(it, buildThemedIconViews(ctx, it)) }
+    }
+}
+
+class AnalogClockWidget : AppWidgetProvider() {
+    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        appWidgetIds.forEach { appWidgetManager.updateAppWidget(it, SahlWidgets.buildAnalogClockViews(context)) }
     }
 }
 
