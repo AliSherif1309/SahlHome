@@ -1,0 +1,58 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_clock_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp"
+    android:background="@drawable/widget_bg">
+
+    <TextClock
+        android:id="@+id/w_clock_time"
+        android:fontFamily="@font/thmanyah"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:format24Hour="HH:mm"
+        android:format12Hour="hh:mm"
+        android:textColor="#FFFFFF"
+        android:textSize="44sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/w_clock_hijri"
+        android:fontFamily="@font/thmanyah"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingTop="2dp"
+        android:gravity="center"
+        android:textColor="#F5C84C"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:maxLines="1" />
+
+    <TextView
+        android:id="@+id/w_clock_greg"
+        android:fontFamily="@font/thmanyah"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingTop="1dp"
+        android:gravity="center"
+        android:textColor="#CCFFFFFF"
+        android:textSize="11.5sp"
+        android:maxLines="1" />
+
+    <TextView
+        android:id="@+id/w_clock_prayer"
+        android:fontFamily="@font/thmanyah"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingTop="4dp"
+        android:gravity="center"
+        android:textColor="#F5C84C"
+        android:textSize="12.5sp"
+        android:textStyle="bold"
+        android:maxLines="1" />
+</LinearLayout>

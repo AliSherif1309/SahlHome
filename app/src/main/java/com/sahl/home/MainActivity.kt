@@ -10,21 +10,24 @@ import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.GridLayout
+import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 
 /**
- * Sahl Theme, Widgets & 4K Wallpaper Studio (for your phone's real Home Screen!):
- *  1. Sahl 4K Procedural Wallpaper Engine + Live Prayer Sky Wallpaper (1-tap apply to Home/Lock/Both or Save 4K PNG)
- *  2. Sahl Islamic Home Screen Widgets (1-tap Pin to your phone's real Home Screen):
- *     - Sahl Islamic Sanctuary (4x2): Hijri date, Daily Quranic Ayah & Morning/Evening Adhkar
- *     - Sahl Union Hub (4x2): Next Prayer countdown + Search, Qibla, Tools & Sahl Apps Popup
- *     - Sahl Apps Dock Bar (4x1): Compact emerald & gold dock bar for your real home screen
- *  3. Sahl Floating Folders (Pin an emerald & gold folder shortcut to your real home screen that opens a floating popup)
- *  4. Sahl Emerald & Gold Icon Styler (Pin a Sahl-sealed emerald & gold icon for ANY installed app onto your real home screen)
+ * Sahl Theme, Widgets & 4K Wallpaper Studio v1.8:
+ *  1. Sahl 4K Procedural Wallpaper Engine + Live Prayer Sky Wallpaper
+ *  2. Sahl Islamic Home Screen Widgets (with live toggle chips for every widget element!):
+ *     - Sahl Islamic Clock (4x2): Live Digital Clock + optional Hijri, Gregorian, Next Prayer
+ *     - Sahl Islamic Sanctuary (4x2): Daily Quranic Ayah + optional Hijri, Surah name, Translation, Adhkar
+ *     - Sahl Union Hub (4x2): Next Prayer countdown + optional Live Clock, Hijri, Quick Action Buttons
+ *     - Sahl Apps Dock Bar (4x1): Compact emerald & gold dock bar
+ *  3. Sahl Floating Folders (No Corner Badge — with optional folder name label)
+ *  4. Sahl Emerald & Gold Icon Styler (Outer-edge gold border matching dock icons, 3 border styles, and toggle to include or hide the app name!)
  */
 class MainActivity : SahlActivity() {
     data class AppItem(val label: String, val normKey: String, val pkg: String, val activity: String, val icon: Drawable)
@@ -34,7 +37,9 @@ class MainActivity : SahlActivity() {
     private val styleCards = HashMap<String, LinearLayout>()
     private lateinit var stylerGrid: GridLayout
     private lateinit var updateBar: TextView
+    private var currentSearchQuery = ""
     private val installedApps = ArrayList<AppItem>()
+    private val iconStyleButtons = HashMap<Int, TextView>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,7 +50,6 @@ class MainActivity : SahlActivity() {
             setBackgroundColor(col(R.color.bg))
         }
 
-        // Top Header with Settings button
         root.addView(
             header(
                 "۞  " + getString(R.string.app_name),
@@ -63,7 +67,6 @@ class MainActivity : SahlActivity() {
             setPadding(px(4), 0, px(4), px(12))
         })
 
-        // Update Banner
         updateBar = text("", 13f, 0xFF072A22.toInt(), true).apply {
             visibility = View.GONE
             background = round(0xFFF5C84C.toInt(), 14f)
@@ -81,10 +84,9 @@ class MainActivity : SahlActivity() {
             clipToOutline = true
         }
         previewView = WallpaperPreviewView(this).apply { style = selectedStyle }
-        previewFrame.addView(previewView, FrameLayout.LayoutParams(-1, px(260)))
+        previewFrame.addView(previewView, FrameLayout.LayoutParams(-1, px(240)))
         col.addView(previewFrame, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) })
 
-        // 2x2 Wallpaper Style Selector Grid
         val wpGrid = GridLayout(this).apply { columnCount = 2 }
         val wpCellW = (resources.displayMetrics.widthPixels - px(44)) / 2
         for (st in WallpaperEngine.styles) {
@@ -114,7 +116,6 @@ class MainActivity : SahlActivity() {
         updateWallpaperSelectionBorders()
         col.addView(wpGrid, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) })
 
-        // Apply Home / Lock / Both / Save 4K buttons + Live Prayer Sky button
         val wpActionsCard = card()
         val r1 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         r1.addView(pillButton(getString(R.string.apply_home), true) {
@@ -151,30 +152,65 @@ class MainActivity : SahlActivity() {
         })
         col.addView(wpActionsCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(18) })
 
-        // ────────────────── SECTION 2: SAHL ISLAMIC HOME SCREEN WIDGETS ──────────────────
+        // ────────────────── SECTION 2: SAHL ISLAMIC HOME SCREEN WIDGETS (WITH ELEMENT TOGGLES!) ──────────────────
         col.addView(sectionHeader(getString(R.string.sec_widgets), getString(R.string.sec_widgets_sub)))
 
+        val ar = resources.configuration.locales[0].language == "ar"
+
+        // Widget 1: Sahl Islamic Clock (4x2)
+        col.addView(
+            buildWidgetGalleryCard(
+                "🕰️  " + getString(R.string.w_clock_title),
+                getString(R.string.w_clock_desc),
+                ClockWidget::class.java,
+                listOf(
+                    Triple("w_clock_hijri", getString(R.string.opt_hijri), true),
+                    Triple("w_clock_greg", getString(R.string.opt_greg), true),
+                    Triple("w_clock_prayer", getString(R.string.opt_prayer), true)
+                )
+            ),
+            LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) }
+        )
+
+        // Widget 2: Sahl Islamic Sanctuary (4x2)
         col.addView(
             buildWidgetGalleryCard(
                 "۞  " + getString(R.string.w_sanctuary_title),
                 getString(R.string.w_sanctuary_desc),
-                SanctuaryWidget::class.java
+                SanctuaryWidget::class.java,
+                listOf(
+                    Triple("w_sanc_hijri", getString(R.string.opt_hijri), true),
+                    Triple("w_sanc_ref", getString(R.string.opt_ref), true),
+                    Triple("w_sanc_trans", getString(R.string.opt_trans), !ar),
+                    Triple("w_sanc_dhikr", getString(R.string.opt_dhikr), true)
+                )
             ),
             LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) }
         )
+
+        // Widget 3: Sahl Union Hub (4x2)
         col.addView(
             buildWidgetGalleryCard(
                 "🕌  " + getString(R.string.w_hub_title),
                 getString(R.string.w_hub_desc),
-                UnionHubWidget::class.java
+                UnionHubWidget::class.java,
+                listOf(
+                    Triple("w_hub_clock", getString(R.string.opt_clock), true),
+                    Triple("w_hub_hijri", getString(R.string.opt_hijri), true),
+                    Triple("w_hub_prayer", getString(R.string.opt_prayer), true),
+                    Triple("w_hub_buttons", getString(R.string.opt_buttons), true)
+                )
             ),
             LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) }
         )
+
+        // Widget 4: Sahl Apps Dock Bar (4x1)
         col.addView(
             buildWidgetGalleryCard(
                 "📞  " + getString(R.string.w_bar_title),
                 getString(R.string.w_bar_desc),
-                SahlBarWidget::class.java
+                SahlBarWidget::class.java,
+                emptyList()
             ),
             LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(18) }
         )
@@ -182,13 +218,11 @@ class MainActivity : SahlActivity() {
         // ────────────────── SECTION 3: SAHL FLOATING FOLDERS FOR YOUR HOME SCREEN ──────────────────
         col.addView(sectionHeader(getString(R.string.sec_folders), getString(R.string.sec_folders_sub)))
         val foldersCard = card()
-        val ar = resources.configuration.locales[0].language == "ar"
 
-        // All Sahl Apps Master Popup Folder
         foldersCard.addView(
             buildFolderPinRow(
                 "all_sahl",
-                if (ar) "۞  كل تطبيقات سهل" else "۞  All Sahl Apps"
+                if (ar) "۞   تطبيقات سهل" else "۞  Sahl Apps"
             )
         )
 
@@ -202,7 +236,70 @@ class MainActivity : SahlActivity() {
         // ────────────────── SECTION 4: SAHL EMERALD & GOLD ICON STYLER ──────────────────
         col.addView(sectionHeader(getString(R.string.sec_icon_styler), getString(R.string.sec_icon_styler_sub)))
         val stylerCard = card()
-        val (sBox, _) = searchBox(getString(R.string.search_apps)) { q -> renderStylerApps(q) }
+
+        // Toggle 1: Include App Name under icon (Switch)
+        val labelToggleRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(px(4), px(2), px(4), px(10))
+        }
+        labelToggleRow.addView(text(getString(R.string.icon_label_toggle), 14.5f, col(R.color.text), true),
+            LinearLayout.LayoutParams(0, -2, 1f))
+        val labelSwitch = Switch(this).apply {
+            isChecked = SahlThemeShortcuts.defaultShowLabel(this@MainActivity)
+            setOnCheckedChangeListener { _, checked ->
+                SahlThemeShortcuts.setDefaultShowLabel(this@MainActivity, checked)
+                // Also update any already-pinned 1x1 icon widgets if desired
+                val p = Sahl.prefs(this@MainActivity)
+                val ed = p.edit()
+                for (k in p.all.keys) {
+                    if (k.startsWith("ti_") && k.endsWith("_show_label")) ed.putBoolean(k, checked)
+                }
+                ed.apply()
+                SahlWidgets.updateAll(this@MainActivity)
+                renderStylerApps(currentSearchQuery)
+            }
+        }
+        labelToggleRow.addView(labelSwitch)
+        stylerCard.addView(labelToggleRow)
+
+        // Toggle 2: 3 Icon Border Styles (Full Gold Border / Gold Glyph on Emerald / Emerald Seal)
+        val styleModesRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, 0, 0, px(12))
+        }
+        val modeOptions = listOf(
+            SahlThemeShortcuts.ICON_STYLE_FILL to getString(R.string.style_fill),
+            SahlThemeShortcuts.ICON_STYLE_GOLD_TINT to getString(R.string.style_tint),
+            SahlThemeShortcuts.ICON_STYLE_SEAL to getString(R.string.style_seal)
+        )
+        for ((modeId, modeTitle) in modeOptions) {
+            val btn = text(modeTitle, 11.5f, col(R.color.text), true).apply {
+                gravity = Gravity.CENTER
+                setPadding(px(8), px(8), px(8), px(8))
+                setOnClickListener {
+                    SahlThemeShortcuts.setDefaultIconStyle(this@MainActivity, modeId)
+                    val p = Sahl.prefs(this@MainActivity)
+                    val ed = p.edit()
+                    for (k in p.all.keys) {
+                        if (k.startsWith("ti_") && k.endsWith("_style_mode")) ed.putInt(k, modeId)
+                    }
+                    ed.apply()
+                    SahlWidgets.updateAll(this@MainActivity)
+                    updateIconStyleButtons()
+                    renderStylerApps(currentSearchQuery)
+                }
+            }.press(12f)
+            iconStyleButtons[modeId] = btn
+            styleModesRow.addView(btn, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = px(4) })
+        }
+        updateIconStyleButtons()
+        stylerCard.addView(styleModesRow)
+
+        val (sBox, _) = searchBox(getString(R.string.search_apps)) { q ->
+            currentSearchQuery = q
+            renderStylerApps(q)
+        }
         stylerCard.addView(sBox, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) })
         stylerGrid = GridLayout(this).apply { columnCount = 4 }
         stylerCard.addView(stylerGrid, LinearLayout.LayoutParams(-1, -2))
@@ -217,6 +314,19 @@ class MainActivity : SahlActivity() {
         checkUpdate(false)
     }
 
+    private fun updateIconStyleButtons() {
+        val cur = SahlThemeShortcuts.defaultIconStyle(this)
+        for ((id, btn) in iconStyleButtons) {
+            val active = id == cur
+            btn.setTextColor(if (active) 0xFF072A22.toInt() else col(R.color.text))
+            btn.background = round(
+                if (active) 0xFFF5C84C.toInt() else col(R.color.tonal),
+                12f,
+                if (active) col(R.color.gold) else col(R.color.line)
+            )
+        }
+    }
+
     private fun sectionHeader(title: String, subtitle: String): View = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
         setPadding(px(4), px(4), px(4), px(10))
@@ -224,10 +334,50 @@ class MainActivity : SahlActivity() {
         addView(text(subtitle, 12.5f, col(R.color.sub)).apply { setPadding(0, px(2), 0, 0) })
     }
 
-    private fun buildWidgetGalleryCard(title: String, desc: String, cls: Class<*>): View {
+    private fun buildWidgetGalleryCard(
+        title: String,
+        desc: String,
+        cls: Class<*>,
+        toggles: List<Triple<String, String, Boolean>>
+    ): View {
         val c = card()
         c.addView(text(title, 16f, col(R.color.text), true))
-        c.addView(text(desc, 12.5f, col(R.color.sub)).apply { setPadding(0, px(4), 0, px(10)) })
+        c.addView(text(desc, 12.5f, col(R.color.sub)).apply { setPadding(0, px(4), 0, px(8)) })
+
+        if (toggles.isNotEmpty()) {
+            val chipsRow = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, 0, 0, px(10))
+            }
+            for ((prefKey, labelText, defVal) in toggles) {
+                val chip = text("", 11.5f, col(R.color.text), true).apply {
+                    setPadding(px(10), px(6), px(10), px(6))
+                }.press(12f)
+
+                fun refreshChip() {
+                    val on = SahlWidgets.opt(this, prefKey, defVal)
+                    chip.text = (if (on) "✓  " else "✕  ") + labelText
+                    chip.setTextColor(if (on) 0xFF072A22.toInt() else col(R.color.sub))
+                    chip.background = round(
+                        if (on) 0xFFF5C84C.toInt() else col(R.color.tonal),
+                        12f,
+                        if (on) col(R.color.gold) else col(R.color.line)
+                    )
+                }
+                refreshChip()
+                chip.setOnClickListener {
+                    val next = !SahlWidgets.opt(this, prefKey, defVal)
+                    SahlWidgets.setOpt(this, prefKey, next)
+                    refreshChip()
+                }
+                chipsRow.addView(chip, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = px(6) })
+            }
+            c.addView(HorizontalScrollView(this).apply {
+                isHorizontalScrollBarEnabled = false
+                addView(chipsRow)
+            })
+        }
+
         c.addView(pillButton(getString(R.string.pin_widget_btn), true) {
             if (!SahlThemeShortcuts.requestPinWidget(this, cls)) {
                 Toast.makeText(this, R.string.widget_pin_guide, Toast.LENGTH_LONG).show()
@@ -246,7 +396,7 @@ class MainActivity : SahlActivity() {
             startActivity(Intent(this, SahlPopupActivity::class.java).putExtra("folder", folderId))
         }, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = px(6) })
         row.addView(pillButton(getString(R.string.pin_folder_btn), true) {
-            val cleanTitle = title.removePrefix("۞  ")
+            val cleanTitle = title.removePrefix("۞  ").trim()
             if (SahlThemeShortcuts.pinFolderIconNoBadge(this, folderId, cleanTitle)) {
                 Toast.makeText(this, R.string.shortcut_pinned, Toast.LENGTH_SHORT).show()
             } else {
@@ -269,7 +419,7 @@ class MainActivity : SahlActivity() {
             runOnUiThread {
                 installedApps.clear()
                 installedApps.addAll(list)
-                renderStylerApps("")
+                renderStylerApps(currentSearchQuery)
             }
         }.start()
     }
@@ -281,6 +431,9 @@ class MainActivity : SahlActivity() {
             it.normKey.contains(nq) || it.pkg.contains(nq)
         }
         val cellW = (resources.displayMetrics.widthPixels - px(68)) / 4
+        val curStyle = SahlThemeShortcuts.defaultIconStyle(this)
+        val showLbl = SahlThemeShortcuts.defaultShowLabel(this)
+
         for (app in shown.take(48)) {
             val item = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
@@ -288,21 +441,20 @@ class MainActivity : SahlActivity() {
                 setPadding(px(4), px(8), px(4), px(8))
                 layoutParams = GridLayout.LayoutParams().apply { width = cellW }
 
-                // Show preview of the app inside the Sahl Emerald & Gold Seal frame
-                val sealPreview = FrameLayout(this@MainActivity).apply {
-                    background = round(0xFF0B5D4B.toInt(), 16f, 0xFFD4AF37.toInt())
-                    setPadding(px(7), px(7), px(7), px(7))
-                    addView(ImageView(this@MainActivity).apply {
-                        setImageDrawable(app.icon)
-                    }, FrameLayout.LayoutParams(px(36), px(36), Gravity.CENTER))
+                // Live preview using the exact same Bitmap renderer as the 1x1 widget!
+                val bmp = SahlThemeShortcuts.createSahlSealIconBitmap(app.icon, null, curStyle)
+                addView(ImageView(this@MainActivity).apply {
+                    setImageBitmap(bmp)
+                }, LinearLayout.LayoutParams(px(54), px(54)))
+
+                if (showLbl) {
+                    addView(text(app.label, 11f, col(R.color.text), true).apply {
+                        maxLines = 1
+                        ellipsize = TextUtils.TruncateAt.END
+                        gravity = Gravity.CENTER
+                        setPadding(0, px(4), 0, 0)
+                    })
                 }
-                addView(sealPreview, LinearLayout.LayoutParams(px(50), px(50)))
-                addView(text(app.label, 11f, col(R.color.text), true).apply {
-                    maxLines = 1
-                    ellipsize = TextUtils.TruncateAt.END
-                    gravity = Gravity.CENTER
-                    setPadding(0, px(4), 0, 0)
-                })
                 setOnClickListener {
                     if (SahlThemeShortcuts.pinThemedAppIconNoBadge(this@MainActivity, app.pkg, app.activity, app.label)) {
                         Toast.makeText(this@MainActivity, R.string.shortcut_pinned, Toast.LENGTH_SHORT).show()

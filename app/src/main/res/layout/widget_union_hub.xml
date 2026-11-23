@@ -6,8 +6,8 @@
     android:gravity="center_vertical"
     android:paddingStart="16dp"
     android:paddingEnd="16dp"
-    android:paddingTop="12dp"
-    android:paddingBottom="12dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp"
     android:background="@drawable/widget_bg">
 
     <LinearLayout
@@ -15,6 +15,17 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical">
+        <TextClock
+            android:id="@+id/w_hub_clock"
+            android:fontFamily="@font/thmanyah"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="10dp"
+            android:format24Hour="HH:mm"
+            android:format12Hour="hh:mm"
+            android:textColor="#FFFFFF"
+            android:textSize="26sp"
+            android:textStyle="bold" />
         <TextView
             android:id="@+id/w_hub_title"
             android:fontFamily="@font/thmanyah"
@@ -41,15 +52,17 @@
         android:fontFamily="@font/thmanyah"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="8dp"
-        android:paddingBottom="10dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="8dp"
         android:gravity="center"
         android:textColor="#FFFFFF"
-        android:textSize="18.5sp"
+        android:textSize="17sp"
         android:textStyle="bold"
-        android:maxLines="1"/>
+        android:maxLines="1"
+        android:ellipsize="end"/>
 
     <LinearLayout
+        android:id="@+id/w_hub_actions_row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -62,12 +75,12 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginEnd="5dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp"
             android:gravity="center"
             android:background="@drawable/widget_pill_bg"
             android:textColor="#F5C84C"
-            android:textSize="12sp"
+            android:textSize="11.5sp"
             android:textStyle="bold"
             android:maxLines="1"/>
 
@@ -78,12 +91,12 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginEnd="5dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp"
             android:gravity="center"
             android:background="@drawable/widget_pill_bg"
             android:textColor="#F5C84C"
-            android:textSize="12sp"
+            android:textSize="11.5sp"
             android:textStyle="bold"
             android:maxLines="1"/>
 
@@ -94,12 +107,12 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginEnd="5dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp"
             android:gravity="center"
             android:background="@drawable/widget_pill_bg"
             android:textColor="#F5C84C"
-            android:textSize="12sp"
+            android:textSize="11.5sp"
             android:textStyle="bold"
             android:maxLines="1"/>
 
@@ -109,12 +122,12 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp"
             android:gravity="center"
             android:background="@drawable/widget_pill_bg"
             android:textColor="#F5C84C"
-            android:textSize="12sp"
+            android:textSize="11.5sp"
             android:textStyle="bold"
             android:maxLines="1"/>
     </LinearLayout>

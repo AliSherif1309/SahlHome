@@ -3,113 +3,209 @@ package com.sahl.home
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.graphics.RadialGradient
 import android.graphics.RectF
 import android.graphics.Shader
+import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 
 /**
  * Sahl Icon Styler & Badgeless 1×1 Home Screen Icon Pinning:
- *  - Because Android's ShortcutManager.requestPinShortcut ALWAYS stamps a small parent-app badge
- *    in the bottom-right corner on Android 8+, Sahl Theme uses a 1×1 AppWidget (ThemedIconWidget)
- *    to place clean, badgeless Sahl Emerald & Gold App Icons and Folder Icons onto the real home screen!
+ *  - Draws the gold border right on the outer edge of the squircle (matching normal Sahl adaptive icons in the dock!)
+ *  - Offers 3 Icon Styles:
+ *      0 = "fill"  (Full Squircle Masked to the Gold Border — no small square inside a square!)
+ *      1 = "seal"  (Emerald Background + Gold Border + Centered App Icon)
+ *      2 = "tint"  (Emerald Background + Gold-Tinted Monochromatic App Glyph)
+ *  - Option to include or hide the app name label underneath!
  */
 object SahlThemeShortcuts {
-    const val EXTRA_PIN_TYPE = "sahl_pin_type"   // "app" or "folder"
-    const val EXTRA_PIN_PKG = "sahl_pin_pkg"
-    const val EXTRA_PIN_ACT = "sahl_pin_act"
-    const val EXTRA_PIN_LABEL = "sahl_pin_label"
-    const val EXTRA_PIN_FOLDER_ID = "sahl_pin_folder_id"
 
-    /** Renders a 192x192 Bitmap with the Sahl Emerald & Gold Seal background and the inner app/folder icon. */
-    fun createSahlSealIconBitmap(inner: Drawable?, glyphText: String? = null): Bitmap {
+    const val ICON_STYLE_FILL = 0
+    const val ICON_STYLE_SEAL = 1
+    const val ICON_STYLE_GOLD_TINT = 2
+
+    fun defaultShowLabel(c: Context): Boolean = Sahl.prefs(c).getBoolean("icon_show_label", true)
+    fun setDefaultShowLabel(c: Context, show: Boolean) = Sahl.prefs(c).edit().putBoolean("icon_show_label", show).apply()
+
+    fun defaultIconStyle(c: Context): Int = Sahl.prefs(c).getInt("icon_style_mode", ICON_STYLE_FILL)
+    fun setDefaultIconStyle(c: Context, mode: Int) = Sahl.prefs(c).edit().putInt("icon_style_mode", mode).apply()
+
+    /**
+     * Renders a 192x192 Bitmap where the gold border is on the exact outer edge of the squircle
+     * (matching the Sahl adaptive launcher icons in the dock!).
+     */
+    fun createSahlSealIconBitmap(
+        inner: Drawable?,
+        glyphText: String? = null,
+        styleMode: Int = ICON_STYLE_FILL
+    ): Bitmap {
         val size = 192
         val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
 
-        // 1. Deep Emerald Radial Background Squircle
+        val margin = 4f
+        val radius = 44f
+        val squircleRect = RectF(margin, margin, size - margin, size - margin)
+        val clipPath = Path().apply {
+            addRoundRect(squircleRect, radius, radius, Path.Direction.CW)
+        }
+
+        // 1. Deep Emerald Radial Background filling the entire squircle
         val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             shader = RadialGradient(
-                size * 0.5f, size * 0.36f, size * 0.72f,
+                size * 0.5f, size * 0.35f, size * 0.78f,
                 0xFF136E56.toInt(), 0xFF07352A.toInt(), Shader.TileMode.CLAMP
             )
         }
-        val outerRect = RectF(6f, 6f, size - 6f, size - 6f)
-        canvas.drawRoundRect(outerRect, 44f, 44f, bgPaint)
+        canvas.drawRoundRect(squircleRect, radius, radius, bgPaint)
 
-        // 2. Signature Gold Seal Border + Top Crown Dot
-        val goldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.style = Paint.Style.STROKE
-            strokeWidth = 5.5f
-            shader = LinearGradient(
-                20f, 20f, size - 20f, size - 20f,
-                intArrayOf(0xFFF7D36A.toInt(), 0xFFD4AF37.toInt(), 0xFFB88922.toInt()),
-                floatArrayOf(0f, 0.5f, 1f),
-                Shader.TileMode.CLAMP
-            )
-        }
-        val sealRect = RectF(20f, 20f, size - 20f, size - 20f)
-        canvas.drawRoundRect(sealRect, 34f, 34f, goldPaint)
-
-        val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.style = Paint.Style.FILL
-            color = 0xFFF7D36A.toInt()
-        }
-        canvas.drawCircle(size * 0.5f, 20f, 5f, dotPaint)
-
-        // 3. Draw inner app icon or Islamic folder glyph
+        // 2. Draw inner app icon or folder glyph
         if (inner != null) {
-            val pad = 42
-            inner.setBounds(pad, pad, size - pad, size - pad)
-            inner.draw(canvas)
+            when (styleMode) {
+                ICON_STYLE_FILL -> {
+                    // Clip the app icon directly to the outer squircle border so there's NO inner square box!
+                    val save = canvas.save()
+                    canvas.clipPath(clipPath)
+                    if (inner is AdaptiveIconDrawable) {
+                        // Draw adaptive icon layers expanded to fill the squircle cleanly
+                        val expand = (size * 0.18f).toInt()
+                        inner.background?.let { bg ->
+                            bg.setBounds(-expand, -expand, size + expand, size + expand)
+                            bg.draw(canvas)
+                        }
+                        inner.foreground?.let { fg ->
+                            fg.setBounds(-expand, -expand, size + expand, size + expand)
+                            fg.draw(canvas)
+                        }
+                    } else {
+                        inner.setBounds(4, 4, size - 4, size - 4)
+                        inner.draw(canvas)
+                    }
+                    canvas.restoreToCount(save)
+                }
+                ICON_STYLE_GOLD_TINT -> {
+                    // Extract foreground if AdaptiveIconDrawable, or use full icon, tinted in warm Sahl Gold on Emerald
+                    val layer = canvas.saveLayer(squircleRect, null)
+                    if (inner is AdaptiveIconDrawable && inner.foreground != null) {
+                        val fg = inner.foreground
+                        val expand = (size * 0.12f).toInt()
+                        fg.setBounds(-expand, -expand, size + expand, size + expand)
+                        fg.draw(canvas)
+                    } else {
+                        val pad = 34
+                        inner.setBounds(pad, pad, size - pad, size - pad)
+                        inner.draw(canvas)
+                    }
+                    val tintPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        color = 0xFFF5C84C.toInt()
+                        xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+                    }
+                    canvas.drawRect(squircleRect, tintPaint)
+                    canvas.restoreToCount(layer)
+                }
+                else -> {
+                    // ICON_STYLE_SEAL: Emerald background + centered icon
+                    val save = canvas.save()
+                    val innerRect = RectF(30f, 30f, size - 30f, size - 30f)
+                    val innerClip = Path().apply { addRoundRect(innerRect, 28f, 28f, Path.Direction.CW) }
+                    canvas.clipPath(innerClip)
+                    inner.setBounds(30, 30, size - 30, size - 30)
+                    inner.draw(canvas)
+                    canvas.restoreToCount(save)
+                }
+            }
         } else if (!glyphText.isNullOrEmpty()) {
             val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = 0xFFF5C84C.toInt()
-                textSize = 72f
+                textSize = 76f
                 textAlign = Paint.Align.CENTER
                 isFakeBoldText = true
             }
             val y = size * 0.5f - (textPaint.descent() + textPaint.ascent()) * 0.5f
             canvas.drawText(glyphText, size * 0.5f, y, textPaint)
         }
+
+        // 3. Signature Gold Border EXACTLY on the outer edge of the squircle (like normal Sahl dock icons!)
+        val borderInset = 6.5f
+        val borderRect = RectF(borderInset, borderInset, size - borderInset, size - borderInset)
+        val goldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            this.style = Paint.Style.STROKE
+            strokeWidth = 6f
+            shader = LinearGradient(
+                0f, 0f, size.toFloat(), size.toFloat(),
+                intArrayOf(0xFFF7D36A.toInt(), 0xFFD4AF37.toInt(), 0xFFB88922.toInt()),
+                floatArrayOf(0f, 0.5f, 1f),
+                Shader.TileMode.CLAMP
+            )
+        }
+        canvas.drawRoundRect(borderRect, 42f, 42f, goldPaint)
+
+        // Top Gold Crown Dot on the outer gold border
+        val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            this.style = Paint.Style.FILL
+            color = 0xFFF7D36A.toInt()
+        }
+        canvas.drawCircle(size * 0.5f, borderInset, 5.5f, dotPaint)
+
         return bmp
     }
 
     /** Saves a Pending configuration so the next added 1×1 ThemedIconWidget automatically adopts this app/folder. */
-    fun savePendingIconConfig(c: Context, type: String, pkg: String, activity: String, label: String, folderId: String) {
+    fun savePendingIconConfig(
+        c: Context,
+        type: String,
+        pkg: String,
+        activity: String,
+        label: String,
+        folderId: String,
+        showLabel: Boolean = defaultShowLabel(c),
+        styleMode: Int = defaultIconStyle(c)
+    ) {
         Sahl.prefs(c).edit()
             .putString("pending_icon_type", type)
             .putString("pending_icon_pkg", pkg)
             .putString("pending_icon_act", activity)
             .putString("pending_icon_label", label)
             .putString("pending_icon_folder", folderId)
+            .putBoolean("pending_icon_show_label", showLabel)
+            .putInt("pending_icon_style_mode", styleMode)
             .putLong("pending_icon_time", System.currentTimeMillis())
             .commit()
     }
 
-    /** Binds a specific appWidgetId to the given app or folder. */
-    fun bindWidgetId(c: Context, appWidgetId: Int, type: String, pkg: String, activity: String, label: String, folderId: String) {
+    /** Binds a specific appWidgetId to the given app or folder and its display preferences. */
+    fun bindWidgetId(
+        c: Context,
+        appWidgetId: Int,
+        type: String,
+        pkg: String,
+        activity: String,
+        label: String,
+        folderId: String,
+        showLabel: Boolean,
+        styleMode: Int
+    ) {
         Sahl.prefs(c).edit()
             .putString("ti_${appWidgetId}_type", type)
             .putString("ti_${appWidgetId}_pkg", pkg)
             .putString("ti_${appWidgetId}_act", activity)
             .putString("ti_${appWidgetId}_label", label)
             .putString("ti_${appWidgetId}_folder", folderId)
+            .putBoolean("ti_${appWidgetId}_show_label", showLabel)
+            .putInt("ti_${appWidgetId}_style_mode", styleMode)
             .commit()
     }
 
-    /**
-     * Pins a BADGELESS 1×1 Sahl-themed emerald & gold app icon widget onto the user's real phone home screen!
-     * Zero small home badge in the bottom-right corner.
-     */
     fun pinThemedAppIconNoBadge(c: Context, pkg: String, activity: String, label: String): Boolean {
-        savePendingIconConfig(c, "app", pkg, activity, label, "")
+        savePendingIconConfig(c, "app", pkg, activity, label, "", defaultShowLabel(c), defaultIconStyle(c))
         return try {
             val awm = AppWidgetManager.getInstance(c)
             if (awm.isRequestPinAppWidgetSupported) {
@@ -120,11 +216,8 @@ object SahlThemeShortcuts {
         }
     }
 
-    /**
-     * Pins a BADGELESS 1×1 Sahl Emerald & Gold Folder popup icon widget onto the user's real phone home screen!
-     */
     fun pinFolderIconNoBadge(c: Context, folderId: String, title: String): Boolean {
-        savePendingIconConfig(c, "folder", "", "", title, folderId)
+        savePendingIconConfig(c, "folder", "", "", title, folderId, defaultShowLabel(c), defaultIconStyle(c))
         return try {
             val awm = AppWidgetManager.getInstance(c)
             if (awm.isRequestPinAppWidgetSupported) {
@@ -135,7 +228,6 @@ object SahlThemeShortcuts {
         }
     }
 
-    /** Requests Android to pin one of Sahl Home's widgets directly onto the user's real phone home screen. */
     fun requestPinWidget(c: Context, providerClass: Class<*>): Boolean = try {
         val awm = AppWidgetManager.getInstance(c)
         if (awm.isRequestPinAppWidgetSupported) {

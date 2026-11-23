@@ -84,7 +84,20 @@
             </intent-filter>
         </activity>
 
-        <!-- Widget 1: Sahl Islamic Sanctuary (Hijri, Daily Ayah & Adhkar) -->
+        <!-- Widget 1: Sahl Islamic Clock (Live Clock, Hijri, Gregorian & Next Prayer) -->
+        <receiver
+            android:name=".ClockWidget"
+            android:exported="true"
+            android:label="@string/w_clock_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_clock_info" />
+        </receiver>
+
+        <!-- Widget 2: Sahl Islamic Sanctuary (Hijri, Daily Ayah & Adhkar) -->
         <receiver
             android:name=".SanctuaryWidget"
             android:exported="true"
@@ -98,7 +111,7 @@
                 android:resource="@xml/widget_sanctuary_info" />
         </receiver>
 
-        <!-- Widget 2: Sahl Union Hub (Next Prayer, Hijri, Search, Qibla, Tools & Sahl Apps) -->
+        <!-- Widget 3: Sahl Union Hub (Live Clock, Next Prayer, Hijri, Search, Qibla, Tools & Sahl Apps) -->
         <receiver
             android:name=".UnionHubWidget"
             android:exported="true"
@@ -111,7 +124,7 @@
                 android:resource="@xml/widget_union_hub_info" />
         </receiver>
 
-        <!-- Widget 3: Sahl Apps Dock Bar (Phone, Messages, Adhan, Camera & Sahl Popup) -->
+        <!-- Widget 4: Sahl Apps Dock Bar (Phone, Messages, Adhan, Camera & Sahl Popup) -->
         <receiver
             android:name=".SahlBarWidget"
             android:exported="true"
@@ -124,7 +137,7 @@
                 android:resource="@xml/widget_sahl_bar_info" />
         </receiver>
 
-        <!-- Widget 4: 1x1 Badgeless Sahl Emerald & Gold Icon (App or Folder — NO corner home logo!) -->
+        <!-- Widget 5: 1x1 Badgeless Sahl Emerald & Gold Icon (App or Folder — NO corner home logo!) -->
         <receiver
             android:name=".ThemedIconWidget"
             android:exported="true"
