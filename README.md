@@ -2,7 +2,7 @@
 
 # Sahl Home · واجهة وخلفيات سهل
 
-**Your calm emerald & gold Android home screen launcher and 4K phone wallpaper engine, part of the Sahl apps family.**
+**An Islamic emerald & gold Android home screen launcher and 4K phone wallpaper engine — combining the calm Sahl aesthetic with Nova-class launcher power.**
 
 [![Latest release](https://img.shields.io/github/v/release/AliSherif1309/SahlHome?label=download&color=0B5D4B)](https://github.com/AliSherif1309/SahlHome/releases/latest)
 [![Build](https://github.com/AliSherif1309/SahlHome/actions/workflows/build.yml/badge.svg)](https://github.com/AliSherif1309/SahlHome/actions)
@@ -13,14 +13,14 @@
 
 ## Features
 
-| Feature | What it does |
+| Pillar | What it does |
 |---|---|
-| **1. Live Sahl Union Dashboard** | Reads live data from your installed Sahl apps via the `com.sahl.permission.UNION` signature connection: **Next Prayer countdown & 5 daily times** from **Sahl Adhan** (`content://com.sahl.adhan.union/prayers`), Hijri & Gregorian clock, **Favorite contacts** from **Sahl Contacts** (`content://com.sahl.contacts.union/favorites`), and **Quick Tools** (Torch, Sahl Search, Wallpapers, Sahl Tools) |
-| **2. Sahl Apps Dock & Smart Grid** | Automatically groups all installed Sahl family apps (**Sahl Phone**, **Contacts**, **Messages**, **Adhan**, **Qibla**, **Files**, **Gallery**, **Camera**, **Tools**, **Sync**, **PDF**, **Timer**) in unified emerald & gold frames, plus a searchable **All Apps Drawer** with Arabic-smart normalization (`أ/ا/إ`, `ة/ه`, `ى/ي`) |
-| **3. Built-in 4K Wallpaper Engine** | Procedurally renders 4 signature emerald & gold wallpapers at your phone's exact resolution (**Emerald Girih**, **Doha Dusk & Crescent**, **Daylight Cream Mihrab**, and **Qibla Horizon**). Apply to Home Screen, Lock Screen, or Both in one tap, or save a `2160×3840` 4K PNG to `Pictures/SahlWallpapers` |
-| **4. Sahl Prayer Sky (Live Wallpaper)** | An optional, battery-friendly Android `WallpaperService` that automatically shifts your phone's wallpaper palette across the 5 daily prayer windows (Fajr dawn teal, Dhuhr/Asr warm daylight cream, Maghrib emerald-gold dusk, and Isha deep night emerald) |
-| **Arabic & English** | In-app language switch, bundled Thmanyah Sans font, right-to-left layout, and light/dark themes |
-| **Flexible use** | Set it as your **default Android Home Screen launcher**, or open it anytime as a **Sahl Hub & Wallpaper Studio** without replacing your current launcher |
+| **1. Spatial 2-Page Islamic Desktop** |<ul><li>**Page 1 (۞ Home):** Live **Sahl Union Mihrab Dashboard** (Next Prayer countdown in matching language, golden progress bar between prayers, 5 daily prayer pills from **Sahl Adhan**, Hijri & Gregorian clock), **Favorites & Quick Tools strip**, and a clean **Pinned Sahl Apps Grid** (renders Sahl icons directly without double-framing).</li><li>**Page 2 (🕌 Sanctuary, Folders & Widgets):** **Daily Quranic Ayah** (`آية اليوم`), time-aware **Morning & Evening Adhkar** (`أذكار الصباح والمساء`), **Smart Folders** (*Islamic & Prayer*, *Sahl Communication*, *Files & Media*, *Tools & Timer*), and a native **Android AppWidget Host**.</li></ul> |
+| **2. Slide-Up All Apps Drawer** | Swipe up from anywhere on the desktop (or tap the All Apps dock icon) to open a full-screen App Drawer with **Arabic-smart instant search** (`أ/ا/إ`, `ة/ه`, `ى/ي`) and an **A–Z / أ–ي fast side index bar**. |
+| **3. Long-Press App Shortcuts & Context Menu** | Long-press any app icon on the desktop, dock, or drawer to open its **native Android App Shortcuts** (`LauncherApps`), **Pin/Unpin to Home Screen**, **Pin/Unpin to Bottom Dock**, **Add to Folder**, **Hide/Unhide App**, **App Info**, and **Uninstall**. |
+| **4. Live Gold Notification Badges** | Optional `NotificationListenerService` displays golden notification count badges on apps with unread messages or calls. |
+| **5. Gesture Engine & Custom Grid** |<ul><li>**Swipe Up:** Open All Apps Drawer</li><li>**Swipe Down:** Expand Android Notification Shade</li><li>**Swipe Left / Right:** Switch between Page 1 (Home) and Page 2 (Islamic Sanctuary, Folders & Widgets)</li><li>**Double-Tap:** Configurable (Open Sahl Search, Wallpapers, or Sahl Screen Light/Dimmer)</li><li>**Long-Press Desktop:** Open Sahl Home Settings (4×3 or 5×3 grid, toggle icon labels, toggle emerald & gold frames for third-party apps, JSON Backup & Restore)</li></ul> |
+| **6. Built-in 4K Wallpaper Engine & Live Prayer Sky** | Procedurally renders 4 signature emerald & gold wallpapers at native or `2160×3840` 4K resolution (**Emerald Girih**, **Doha Dusk & Crescent**, **Daylight Cream Mihrab**, and **Qibla Horizon**), plus the **Sahl Prayer Sky Live Wallpaper Service** (`WallpaperService`) that shifts palette across Fajr, Dhuhr, Asr, Maghrib, and Isha. |
 
 ## Install
 

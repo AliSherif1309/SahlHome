@@ -1,14 +1,21 @@
 package com.sahl.home
 
+import android.app.AlertDialog
 import android.app.role.RoleManager
+import android.appwidget.AppWidgetHost
+import android.appwidget.AppWidgetManager
 import android.content.BroadcastReceiver
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
-import android.graphics.Canvas
+import android.content.pm.ShortcutInfo
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.net.Uri
@@ -16,10 +23,16 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.Process
 import android.provider.Settings
 import android.text.TextUtils
+import android.view.GestureDetector
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.GridLayout
@@ -35,21 +48,34 @@ import java.time.ZoneId
 import java.time.chrono.HijrahDate
 import java.time.format.DateTimeFormatter
 import java.util.Date
-import java.util.Locale
+import kotlin.math.abs
 
 /**
- * Sahl Home Screen & Launcher:
- *  1. Live Sahl Union Dashboard (clock, Hijri & Gregorian date, Next Prayer countdown & 5 prayer pills from Sahl Adhan)
- *  2. Favorites row (from Sahl Contacts Union) & Quick Tools row (Torch, Sahl Search, Wallpapers, Sahl Tools)
- *  3. Sahl Family App Grid & Bottom Dock in unified emerald & gold squircle frames
- *  4. Searchable All-Apps Drawer with Arabic-smart normalization (أ/ا/إ, ة/ه, ى/ي)
+ * Sahl Home v2.0 — Islamic Sahl Theme + Nova-Class Spatial Launcher:
+ *  - 2-Page Horizontal Spatial Desktop with Page Indicators (۞)
+ *    - Page 1: Live Sahl Union Mihrab Dashboard (Prayer times, golden progress bar, Hijri/Gregorian clock),
+ *              Favorites & Quick Tools strip, and clean Sahl Apps Grid (no double box wrapping).
+ *    - Page 2: Daily Quranic Ayah & Morning/Evening Adhkar card, Smart Islamic & Sahl Folders,
+ *              and Native Android AppWidget Host container.
+ *  - Slide-Up Full-Screen All Apps Drawer with Arabic-smart search (أ/ا/إ, ة/ه, ى/ي) & A–Z / أ–ي fast index bar
+ *  - Nova-style Long-Press App Context Menu (Native Android Shortcuts, Pin/Unpin Home & Dock, Folders, Hide, App Info, Uninstall)
+ *  - Live Golden Notification Badges via BadgeListenerService
+ *  - Gesture Engine (Swipe Up -> App Drawer, Swipe Down -> Notification Shade, Double-Tap -> Configurable Action, Long-Press -> Sahl Home Settings)
  */
 class MainActivity : SahlActivity() {
     data class PrayerSlot(val index: Int, val name: String, val timeMs: Long)
     data class FavContact(val id: Long, val name: String, val number: String, val photo: String?)
-    data class AppEntry(val label: String, val normKey: String, val pkg: String, val activity: String, val icon: Drawable, val isSahl: Boolean)
+    data class AppEntry(
+        val label: String,
+        val normKey: String,
+        val section: String,
+        val pkg: String,
+        val activity: String,
+        val icon: Drawable,
+        val isSahl: Boolean
+    )
 
-    private val sahlPackages = listOf(
+    private val sahlPackages = setOf(
         "com.sahl.phone", "com.sahl.contacts", "com.sahl.messages", "com.sahl.adhan",
         "com.sahl.qibla", "com.aly.trueqibla", "com.sahl.files", "com.sahl.gallery",
         "com.sahl.camera", "com.sahl.tools", "com.aly.sahlsync", "com.sahl.pdf", "com.sahl.timer"
@@ -57,16 +83,49 @@ class MainActivity : SahlActivity() {
 
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var bgBackdrop: WallpaperPreviewView
+    private lateinit var desktopPager: FrameLayout
+    private lateinit var page1Container: ScrollView
+    private lateinit var page2Container: ScrollView
+    private lateinit var dotPage1: TextView
+    private lateinit var dotPage2: TextView
+    private var currentPage = 0
+
+    // Page 1 views
     private lateinit var clockText: TextView
     private lateinit var dateText: TextView
     private lateinit var prayerCountdownText: TextView
+    private lateinit var prayerProgressFill: View
     private lateinit var prayerPillsRow: LinearLayout
     private lateinit var favContainer: LinearLayout
-    private lateinit var sahlAppsGrid: GridLayout
-    private lateinit var allAppsGrid: GridLayout
+    private lateinit var desktopAppsGrid: GridLayout
     private lateinit var updateBar: TextView
-    private lateinit var defaultHomeBanner: TextView
-    private var searchInput: EditText? = null
+    private lateinit var defaultHomeChip: TextView
+
+    // Page 2 views (Islamic Sanctuary, Smart Folders & Android Widgets)
+    private lateinit var ayahArabicText: TextView
+    private lateinit var ayahTranslationText: TextView
+    private lateinit var ayahRefText: TextView
+    private lateinit var dhikrTitleText: TextView
+    private lateinit var dhikrBodyText: TextView
+    private lateinit var foldersGrid: GridLayout
+    private lateinit var widgetsContainer: LinearLayout
+
+    // Bottom Dock & Drawer
+    private lateinit var bottomDockRow: LinearLayout
+    private lateinit var drawerOverlay: FrameLayout
+    private lateinit var drawerAppsGrid: GridLayout
+    private lateinit var drawerSectionBar: LinearLayout
+    private var drawerSearchInput: EditText? = null
+    private var drawerOpen = false
+    private var showHiddenInDrawer = false
+
+    // AppWidgetHost
+    private lateinit var appWidgetManager: AppWidgetManager
+    private lateinit var appWidgetHost: AppWidgetHost
+    private val HOST_ID = 1448
+    private val REQ_PICK_WIDGET = 201
+    private val REQ_BIND_WIDGET = 202
+
     private var torchOn = false
     private val allApps = ArrayList<AppEntry>()
 
@@ -79,121 +138,140 @@ class MainActivity : SahlActivity() {
 
     private val unionReceiver = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
-            refreshUnionData()
+            when (i.action) {
+                BadgeListenerService.ACTION_BADGES_CHANGED -> {
+                    renderDesktopAppsGrid()
+                    renderBottomDock()
+                    if (drawerOpen) filterDrawerApps(drawerSearchInput?.text?.toString() ?: "")
+                }
+                else -> refreshUnionData()
+            }
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        appWidgetManager = AppWidgetManager.getInstance(this)
+        appWidgetHost = AppWidgetHost(this, HOST_ID)
+
         val root = FrameLayout(this)
 
-        // Procedural Sahl Wallpaper backdrop rendered behind the home screen
+        // Procedural Sahl Wallpaper backdrop rendered behind the spatial launcher
         bgBackdrop = WallpaperPreviewView(this).apply {
             style = WallpaperEngine.currentStyle(this@MainActivity)
         }
         root.addView(bgBackdrop, FrameLayout.LayoutParams(-1, -1))
 
-        val pageCol = LinearLayout(this).apply {
+        // Main spatial desktop column (Non-scrolling outer shell: Header + Paged Desktop + Page Dots + Dock)
+        val desktopShell = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            setPadding(px(12), px(10), px(12), px(10))
         }
 
-        val scrollContent = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(px(14), px(16), px(14), px(20))
-        }
+        // Top Bar: Compact Bismillah/Sahl Crown + Default Home pill + Wallpapers & Settings buttons
+        desktopShell.addView(buildTopCrownBar(), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(6) })
 
-        // Top bar: Sahl Home title + Wallpapers & Settings quick icons
-        val topBar = LinearLayout(this).apply {
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(px(4), px(4), px(4), px(10))
-        }
-        topBar.addView(text(getString(R.string.app_name), 22f, 0xFFF5C84C.toInt(), true), LinearLayout.LayoutParams(0, -2, 1f))
-        topBar.addView(iconButton(R.drawable.ic_wallpaper, 0x33000000, 0xFFF5C84C.toInt(), 40, 20) {
-            startActivity(Intent(this, WallpaperActivity::class.java))
-        }.apply { (layoutParams as LinearLayout.LayoutParams).marginEnd = px(8) })
-        topBar.addView(iconButton(R.drawable.ic_tune, 0x33000000, 0xFFF5C84C.toInt(), 40, 20) {
-            showSettingsSheet()
-        })
-        scrollContent.addView(topBar)
-
-        // Update notification banner
-        updateBar = text("", 13f, 0xFF072A22.toInt(), true).apply {
+        // Update notification banner (only shown when an update exists)
+        updateBar = text("", 12f, 0xFF072A22.toInt(), true).apply {
             visibility = View.GONE
             background = round(0xFFF5C84C.toInt(), 14f)
-            setPadding(px(14), px(10), px(14), px(10))
+            setPadding(px(12), px(8), px(12), px(8))
             gravity = Gravity.CENTER
         }
-        scrollContent.addView(updateBar, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) })
+        desktopShell.addView(updateBar, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(6) })
 
-        // Optional banner to set Sahl Home as default Android Home launcher
-        defaultHomeBanner = text(getString(R.string.set_default_home), 13f, 0xFFF5C84C.toInt(), true).apply {
-            background = round(0xCC12463A.toInt(), 16f, 0x88D4AF37.toInt())
-            setPadding(px(14), px(10), px(14), px(10))
-            gravity = Gravity.CENTER
-            setOnClickListener { askDefaultHomeRole() }
-        }.press(16f)
-        scrollContent.addView(defaultHomeBanner, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(12) })
+        // 2-Page Desktop Stage
+        desktopPager = FrameLayout(this)
+        page1Container = buildPage1Desktop()
+        page2Container = buildPage2SanctuaryAndFolders()
+        page2Container.visibility = View.GONE
+        desktopPager.addView(page1Container, FrameLayout.LayoutParams(-1, -1))
+        desktopPager.addView(page2Container, FrameLayout.LayoutParams(-1, -1))
+        attachGestureEngine(desktopPager)
+        desktopShell.addView(desktopPager, LinearLayout.LayoutParams(-1, 0, 1f))
 
-        // 1. Live Sahl Union Dashboard Card
-        scrollContent.addView(buildUnionDashboardCard(), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(12) })
-
-        // 2. Favorites & Quick Tools Card
-        scrollContent.addView(buildFavoritesAndToolsCard(), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(12) })
-
-        // 3. Sahl Family App Grid Card
-        val sahlCard = glassCard()
-        sahlCard.addView(text(getString(R.string.sahl_family), 13f, 0xFFF5C84C.toInt(), true).apply {
-            setPadding(px(4), 0, px(4), px(8))
+        // Page Indicators + Swipe-up All Apps handle
+        desktopShell.addView(buildPageIndicatorAndDrawerHandle(), LinearLayout.LayoutParams(-1, -2).apply {
+            topMargin = px(4)
+            bottomMargin = px(6)
         })
-        sahlAppsGrid = GridLayout(this).apply { columnCount = 4 }
-        sahlCard.addView(sahlAppsGrid, LinearLayout.LayoutParams(-1, -2))
-        scrollContent.addView(sahlCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(12) })
-
-        // 4. All Apps Drawer with Arabic-smart search
-        val drawerCard = glassCard()
-        drawerCard.addView(text(getString(R.string.all_apps), 13f, 0xFFF5C84C.toInt(), true).apply {
-            setPadding(px(4), 0, px(4), px(6))
-        })
-        val (sBox, sEt) = searchBox(getString(R.string.search_apps)) { q -> filterAllApps(q) }
-        searchInput = sEt
-        drawerCard.addView(sBox, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) })
-        allAppsGrid = GridLayout(this).apply { columnCount = 4 }
-        drawerCard.addView(allAppsGrid, LinearLayout.LayoutParams(-1, -2))
-        scrollContent.addView(drawerCard, LinearLayout.LayoutParams(-1, -2))
-
-        pageCol.addView(ScrollView(this).apply {
-            isVerticalScrollBarEnabled = false
-            addView(scrollContent)
-        }, LinearLayout.LayoutParams(-1, 0, 1f))
 
         // Bottom Dock
-        pageCol.addView(buildBottomDock(), LinearLayout.LayoutParams(-1, -2).apply {
-            setMargins(px(14), px(4), px(14), px(12))
-        })
+        bottomDockRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            background = round(if (night) 0xD90E2922.toInt() else 0xE6FFFFFF.toInt(), 26f, 0x99D4AF37.toInt())
+            setPadding(px(10), px(8), px(10), px(8))
+        }
+        desktopShell.addView(bottomDockRow, LinearLayout.LayoutParams(-1, -2))
 
-        root.addView(pageCol, FrameLayout.LayoutParams(-1, -1))
+        root.addView(desktopShell, FrameLayout.LayoutParams(-1, -1))
+
+        // Full-Screen Slide-Up All Apps Drawer Overlay
+        drawerOverlay = buildAllAppsDrawerOverlay()
+        drawerOverlay.visibility = View.GONE
+        root.addView(drawerOverlay, FrameLayout.LayoutParams(-1, -1))
+
         setContentView(root)
 
         Updater.scheduleDaily(this)
         checkUpdate(false)
     }
 
-    private fun glassCard(): LinearLayout = LinearLayout(this).apply {
-        orientation = LinearLayout.VERTICAL
-        background = round(if (night) 0xD918221F.toInt() else 0xE6FFFFFF.toInt(), 22f, 0x66D4AF37)
-        setPadding(px(14), px(12), px(14), px(12))
+    private fun buildTopCrownBar(): View {
+        val bar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(px(4), px(2), px(4), px(2))
+        }
+        val titleRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        titleRow.addView(text("۞  " + getString(R.string.app_name), 19f, 0xFFF5C84C.toInt(), true))
+        bar.addView(titleRow, LinearLayout.LayoutParams(0, -2, 1f))
+
+        defaultHomeChip = text(getString(R.string.set_default_home), 11f, 0xFF072A22.toInt(), true).apply {
+            background = round(0xFFF5C84C.toInt(), 14f)
+            setPadding(px(10), px(5), px(10), px(5))
+            setOnClickListener { askDefaultHomeRole() }
+        }.press(14f)
+        bar.addView(defaultHomeChip, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = px(8) })
+
+        bar.addView(iconButton(R.drawable.ic_wallpaper, 0x33000000, 0xFFF5C84C.toInt(), 36, 18) {
+            startActivity(Intent(this, WallpaperActivity::class.java))
+        }.apply { (layoutParams as LinearLayout.LayoutParams).marginEnd = px(6) })
+
+        bar.addView(iconButton(R.drawable.ic_tune, 0x33000000, 0xFFF5C84C.toInt(), 36, 18) {
+            showSettingsSheet()
+        })
+        return bar
     }
 
-    private fun buildUnionDashboardCard(): View {
-        val c = glassCard()
+    private fun glassCard(strokeAlphaColor: Int = 0x66D4AF37): LinearLayout = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        background = round(if (night) 0xD915221E.toInt() else 0xEAFFFFFF.toInt(), 22f, strokeAlphaColor)
+        setPadding(px(14), px(11), px(14), px(11))
+    }
+
+    /**
+     * PAGE 1: Live Sahl Union Mihrab Dashboard + Compact Favorites & Tools Strip + Clean Pinned Apps Grid.
+     */
+    private fun buildPage1Desktop(): ScrollView {
+        val col = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        // 1. Live Sahl Union Dashboard Card
+        val dash = glassCard(0x99D4AF37.toInt())
         val topRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
         val leftCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        leftCol.addView(text(getString(R.string.union_title), 12f, 0xFFD4AF37.toInt(), true))
-        clockText = text("00:00", 34f, col(R.color.text), true)
+        leftCol.addView(text(getString(R.string.union_title), 11f, 0xFFD4AF37.toInt(), true))
+        clockText = text("00:00", 32f, col(R.color.text), true)
         leftCol.addView(clockText)
         topRow.addView(leftCol, LinearLayout.LayoutParams(0, -2, 1f))
 
@@ -201,43 +279,58 @@ class MainActivity : SahlActivity() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.END
         }
-        dateText = text("", 13f, col(R.color.text), true)
+        dateText = text("", 12f, col(R.color.text), true)
         rightCol.addView(dateText)
-        prayerCountdownText = text("", 12f, col(R.color.emerald), true).apply {
+        prayerCountdownText = text("", 12f, if (night) 0xFFF5C84C.toInt() else col(R.color.emerald), true).apply {
             setPadding(0, px(2), 0, 0)
         }
         rightCol.addView(prayerCountdownText)
         topRow.addView(rightCol)
-        c.addView(topRow)
+        dash.addView(topRow)
+
+        // Golden progress bar between previous and next prayer
+        val progressTrack = FrameLayout(this).apply {
+            background = round(col(R.color.line), 4f)
+        }
+        prayerProgressFill = View(this).apply {
+            background = GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                intArrayOf(0xFF0B5D4B.toInt(), 0xFFD4AF37.toInt(), 0xFFF5C84C.toInt())
+            ).apply { cornerRadius = 4f * dp }
+        }
+        progressTrack.addView(prayerProgressFill, FrameLayout.LayoutParams(px(180), px(5)))
+        dash.addView(progressTrack, LinearLayout.LayoutParams(-1, px(5)).apply {
+            topMargin = px(8)
+            bottomMargin = px(8)
+        })
 
         prayerPillsRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(0, px(10), 0, 0)
         }
-        c.addView(prayerPillsRow, LinearLayout.LayoutParams(-1, -2))
-        c.setOnClickListener {
-            launchPackageOrToast("com.sahl.adhan")
-        }
-        return c
-    }
+        dash.addView(prayerPillsRow, LinearLayout.LayoutParams(-1, -2))
+        dash.setOnClickListener { launchPackageOrToast("com.sahl.adhan") }
+        col.addView(dash, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) })
 
-    private fun buildFavoritesAndToolsCard(): View {
-        val c = glassCard()
-        c.addView(text(getString(R.string.favorites_title), 12f, 0xFFD4AF37.toInt(), true).apply {
-            setPadding(px(2), 0, px(2), px(6))
-        })
+        // 2. Compact Favorites & Quick Tools Strip
+        val stripCard = glassCard()
+        val favHeaderRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        favHeaderRow.addView(text(getString(R.string.favorites_title), 11f, 0xFFD4AF37.toInt(), true),
+            LinearLayout.LayoutParams(0, -2, 1f))
+        favHeaderRow.addView(text(getString(R.string.quick_tools), 11f, col(R.color.sub), true))
+        stripCard.addView(favHeaderRow, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(6) })
+
         favContainer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
-        c.addView(HorizontalScrollView(this).apply {
+        stripCard.addView(HorizontalScrollView(this).apply {
             isHorizontalScrollBarEnabled = false
             addView(favContainer)
-        }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) })
+        }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(8) })
 
-        c.addView(text(getString(R.string.quick_tools), 12f, 0xFFD4AF37.toInt(), true).apply {
-            setPadding(px(2), 0, px(2), px(6))
-        })
         val toolsRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         toolsRow.addView(quickToolPill(R.drawable.ic_flash, getString(R.string.tool_torch)) {
             toggleTorch()
@@ -248,82 +341,711 @@ class MainActivity : SahlActivity() {
         toolsRow.addView(quickToolPill(R.drawable.ic_wallpaper, getString(R.string.tool_wallpapers)) {
             startActivity(Intent(this, WallpaperActivity::class.java))
         }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = px(4) })
-        toolsRow.addView(quickToolPill(R.drawable.ic_tune, getString(R.string.tool_tools)) {
-            launchPackageOrToast("com.sahl.tools")
+        toolsRow.addView(quickToolPill(R.drawable.ic_apps, getString(R.string.all_apps)) {
+            openDrawer()
         }, LinearLayout.LayoutParams(0, -2, 1f))
-        c.addView(toolsRow)
-        return c
+        stripCard.addView(toolsRow)
+        col.addView(stripCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) })
+
+        // 3. Clean Pinned Sahl & Favorite Apps Grid (Directly on wallpaper — no outer box clutter, no double-framed Sahl icons!)
+        desktopAppsGrid = GridLayout(this).apply {
+            columnCount = IslamicHomeData.gridColumns(this@MainActivity)
+        }
+        col.addView(desktopAppsGrid, LinearLayout.LayoutParams(-1, -2))
+
+        return ScrollView(this).apply {
+            isVerticalScrollBarEnabled = false
+            addView(col)
+            setOnTouchListener { _, ev -> gestureDetector.onTouchEvent(ev); false }
+        }
+    }
+
+    /**
+     * PAGE 2: Islamic Sanctuary (Daily Quranic Ayah & Morning/Evening Adhkar), Smart Folders, and Native Android Widgets.
+     */
+    private fun buildPage2SanctuaryAndFolders(): ScrollView {
+        val col = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        // 1. Daily Quranic Ayah & Morning/Evening Adhkar Sanctuary Card
+        val ayahCard = glassCard(0x99D4AF37.toInt())
+        val ayah = IslamicHomeData.todayAyah()
+        val ar = resources.configuration.locales[0].language == "ar"
+        ayahCard.addView(text(if (ar) "۞  آية اليوم" else "۞  Daily Quranic Ayah", 11f, 0xFFD4AF37.toInt(), true))
+        ayahArabicText = text(ayah.ar, 18f, if (night) 0xFFF5C84C.toInt() else col(R.color.emerald), true).apply {
+            setPadding(0, px(6), 0, px(4))
+        }
+        ayahCard.addView(ayahArabicText)
+        ayahTranslationText = text(ayah.en, 12f, col(R.color.text), false).apply {
+            visibility = if (ar) View.GONE else View.VISIBLE
+            setPadding(0, 0, 0, px(4))
+        }
+        ayahCard.addView(ayahTranslationText)
+        ayahRefText = text(if (ar) ayah.refAr else ayah.refEn, 11f, col(R.color.sub), true)
+        ayahCard.addView(ayahRefText)
+
+        // Divider
+        ayahCard.addView(View(this).apply { setBackgroundColor(col(R.color.line)) },
+            LinearLayout.LayoutParams(-1, 1).apply { topMargin = px(8); bottomMargin = px(8) })
+
+        val dhikr = IslamicHomeData.currentDhikr()
+        dhikrTitleText = text("📿  " + (if (ar) dhikr.titleAr else dhikr.titleEn), 11f, 0xFFD4AF37.toInt(), true)
+        ayahCard.addView(dhikrTitleText)
+        dhikrBodyText = text(if (ar) dhikr.ar else "${dhikr.ar}\n${dhikr.en}", 13f, col(R.color.text), true).apply {
+            setPadding(0, px(4), 0, 0)
+        }
+        ayahCard.addView(dhikrBodyText)
+        col.addView(ayahCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) })
+
+        // 2. Smart Islamic & Sahl Folders Card
+        val folderCard = glassCard()
+        val folderHdr = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        folderHdr.addView(text(getString(R.string.folders_title), 12f, 0xFFD4AF37.toInt(), true),
+            LinearLayout.LayoutParams(0, -2, 1f))
+        folderHdr.addView(text(getString(R.string.new_folder), 12f, col(R.color.emerald), true).apply {
+            setPadding(px(8), px(4), px(8), px(4))
+            setOnClickListener { promptCreateFolder() }
+        }.press(12f))
+        folderCard.addView(folderHdr, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(6) })
+
+        foldersGrid = GridLayout(this).apply { columnCount = 2 }
+        folderCard.addView(foldersGrid, LinearLayout.LayoutParams(-1, -2))
+        col.addView(folderCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) })
+
+        // 3. Native Android AppWidget Host Card
+        val widgetCard = glassCard()
+        val wHdr = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        wHdr.addView(text(getString(R.string.widgets_title), 12f, 0xFFD4AF37.toInt(), true),
+            LinearLayout.LayoutParams(0, -2, 1f))
+        wHdr.addView(text(getString(R.string.add_widget), 12f, col(R.color.emerald), true).apply {
+            setPadding(px(8), px(4), px(8), px(4))
+            setOnClickListener { pickNewAppWidget() }
+        }.press(12f))
+        widgetCard.addView(wHdr, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(6) })
+
+        widgetsContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        widgetCard.addView(widgetsContainer, LinearLayout.LayoutParams(-1, -2))
+        col.addView(widgetCard, LinearLayout.LayoutParams(-1, -2))
+
+        return ScrollView(this).apply {
+            isVerticalScrollBarEnabled = false
+            addView(col)
+            setOnTouchListener { _, ev -> gestureDetector.onTouchEvent(ev); false }
+        }
+    }
+
+    private fun buildPageIndicatorAndDrawerHandle(): View {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        dotPage1 = text("۞  1", 12f, 0xFFF5C84C.toInt(), true).apply {
+            setPadding(px(12), px(4), px(12), px(4))
+            background = round(0x550B5D4B, 14f, 0xFFD4AF37.toInt())
+            setOnClickListener { switchPage(0) }
+        }
+        dotPage2 = text("🕌  2", 12f, 0xAAEDEBE4.toInt(), true).apply {
+            setPadding(px(12), px(4), px(12), px(4))
+            background = round(0x22000000, 14f)
+            setOnClickListener { switchPage(1) }
+        }
+        val drawerPill = text(getString(R.string.swipe_up_hint), 11f, 0xDDEDEBE4.toInt(), true).apply {
+            setPadding(px(12), px(4), px(12), px(4))
+            setOnClickListener { openDrawer() }
+        }
+        row.addView(dotPage1, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = px(6) })
+        row.addView(dotPage2, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = px(8) })
+        row.addView(drawerPill)
+        return row
+    }
+
+    private fun switchPage(page: Int) {
+        currentPage = page.coerceIn(0, 1)
+        page1Container.visibility = if (currentPage == 0) View.VISIBLE else View.GONE
+        page2Container.visibility = if (currentPage == 1) View.VISIBLE else View.GONE
+        dotPage1.setTextColor(if (currentPage == 0) 0xFFF5C84C.toInt() else 0xAAEDEBE4.toInt())
+        dotPage1.background = if (currentPage == 0) round(0x660B5D4B, 14f, 0xFFD4AF37.toInt()) else round(0x22000000, 14f)
+        dotPage2.setTextColor(if (currentPage == 1) 0xFFF5C84C.toInt() else 0xAAEDEBE4.toInt())
+        dotPage2.background = if (currentPage == 1) round(0x660B5D4B, 14f, 0xFFD4AF37.toInt()) else round(0x22000000, 14f)
+        if (currentPage == 1) {
+            refreshIslamicSanctuary()
+            renderFoldersGrid()
+        }
+    }
+
+    /**
+     * Full-Screen Slide-Up All Apps Drawer with Arabic-smart search & A–Z / أ–ي Fast Side Index.
+     */
+    private fun buildAllAppsDrawerOverlay(): FrameLayout {
+        val overlay = FrameLayout(this).apply {
+            setBackgroundColor(if (night) 0xF20A1814.toInt() else 0xF5F7F5EE.toInt())
+            isClickable = true
+        }
+        val col = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(px(14), px(14), px(14), px(14))
+        }
+
+        // Top search bar + Close drawer button
+        val topBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val (sBox, sEt) = searchBox(getString(R.string.search_apps)) { q -> filterDrawerApps(q) }
+        drawerSearchInput = sEt
+        topBar.addView(sBox, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = px(8) })
+        topBar.addView(iconButton(R.drawable.ic_close, col(R.color.tonal), col(R.color.emerald), 42, 20) {
+            closeDrawer()
+        })
+        col.addView(topBar, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(8) })
+
+        // Fast A-Z / أ-ي Horizontal Section Chips
+        drawerSectionBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, px(2), 0, px(6))
+        }
+        col.addView(HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(drawerSectionBar)
+        }, LinearLayout.LayoutParams(-1, -2))
+
+        // Scrollable App Grid
+        drawerAppsGrid = GridLayout(this).apply {
+            columnCount = IslamicHomeData.gridColumns(this@MainActivity)
+        }
+        col.addView(ScrollView(this).apply {
+            isVerticalScrollBarEnabled = false
+            addView(drawerAppsGrid)
+        }, LinearLayout.LayoutParams(-1, 0, 1f))
+
+        overlay.addView(col, FrameLayout.LayoutParams(-1, -1))
+        return overlay
+    }
+
+    private fun openDrawer() {
+        drawerOpen = true
+        drawerOverlay.visibility = View.VISIBLE
+        drawerOverlay.translationY = 120f * dp
+        drawerOverlay.alpha = 0f
+        drawerOverlay.animate().translationY(0f).alpha(1f).setDuration(180).start()
+        filterDrawerApps(drawerSearchInput?.text?.toString() ?: "")
+    }
+
+    private fun closeDrawer() {
+        if (!drawerOpen) return
+        drawerOpen = false
+        drawerSearchInput?.setText("")
+        getSystemService(InputMethodManager::class.java)?.hideSoftInputFromWindow(drawerOverlay.windowToken, 0)
+        drawerOverlay.visibility = View.GONE
+    }
+
+    private lateinit var gestureDetector: GestureDetector
+
+    private fun attachGestureEngine(target: View) {
+        gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDoubleTap(e: MotionEvent): Boolean {
+                when (IslamicHomeData.doubleTapAction(this@MainActivity)) {
+                    "wallpapers" -> startActivity(Intent(this@MainActivity, WallpaperActivity::class.java))
+                    "dim" -> launchPackageOrToast("com.sahl.tools")
+                    else -> openSahlSearch()
+                }
+                return true
+            }
+
+            override fun onLongPress(e: MotionEvent) {
+                target.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                showSettingsSheet()
+            }
+
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                if (e1 == null) return false
+                val dx = e2.rawX - e1.rawX
+                val dy = e2.rawY - e1.rawY
+                if (abs(dx) > abs(dy) * 1.3f && abs(dx) > 75 * dp) {
+                    if (dx < 0 && currentPage == 0) { switchPage(1); return true }
+                    if (dx > 0 && currentPage == 1) { switchPage(0); return true }
+                } else if (abs(dy) > abs(dx) * 1.4f && abs(dy) > 95 * dp) {
+                    if (dy < 0 && !drawerOpen) {
+                        openDrawer()
+                        return true
+                    } else if (dy > 0 && !drawerOpen && e1.rawY < resources.displayMetrics.heightPixels * 0.45f) {
+                        expandStatusBarNotifications()
+                        return true
+                    }
+                }
+                return false
+            }
+        })
+        target.setOnTouchListener { _, ev -> gestureDetector.onTouchEvent(ev); true }
+    }
+
+    private fun expandStatusBarNotifications() {
+        try {
+            val sbm = getSystemService("statusbar") ?: return
+            val cls = Class.forName("android.app.StatusBarManager")
+            cls.getMethod("expandNotificationsPanel").invoke(sbm)
+        } catch (_: Exception) {}
     }
 
     private fun quickToolPill(iconRes: Int, title: String, onTap: () -> Unit): LinearLayout =
         LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
+            orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
             background = round(col(R.color.tonal), 14f, 0x44D4AF37)
-            setPadding(px(6), px(8), px(6), px(8))
-            addView(icon(iconRes, col(R.color.emerald), 18))
+            setPadding(px(6), px(7), px(6), px(7))
+            addView(icon(iconRes, col(R.color.emerald), 16))
             addView(text(title, 11f, col(R.color.text), true).apply {
                 maxLines = 1
                 ellipsize = TextUtils.TruncateAt.END
-                gravity = Gravity.CENTER
-                setPadding(0, px(4), 0, 0)
+                setPadding(px(5), 0, 0, 0)
             })
             setOnClickListener { onTap() }
         }.press(14f)
 
-    private fun buildBottomDock(): View {
-        val dock = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            background = round(if (night) 0xE612463A.toInt() else 0xE6FFFFFF.toInt(), 26f, 0x88D4AF37.toInt())
-            setPadding(px(12), px(10), px(12), px(10))
-        }
-        val dockItems = listOf(
-            Triple("com.sahl.phone", R.drawable.ic_call, "Phone"),
-            Triple("com.sahl.messages", R.drawable.ic_chat, "Messages"),
-            Triple("com.sahl.adhan", R.drawable.ic_star, "Adhan"),
-            Triple("com.sahl.camera", R.drawable.ic_photo, "Camera")
-        )
-        for ((pkg, fallbackIcon, _) in dockItems) {
+    /**
+     * Renders the Bottom Dock cleanly without double-wrapping Sahl icons.
+     */
+    private fun renderBottomDock() {
+        bottomDockRow.removeAllViews()
+        val dockPkgs = IslamicHomeData.dockPackages(this)
+        for (pkg in dockPkgs) {
+            val entry = allApps.firstOrNull { it.pkg == pkg }
             val cell = FrameLayout(this).apply {
-                background = round(0xFF0B5D4B.toInt(), 16f, 0xFFD4AF37.toInt())
-                val appIcon = try { packageManager.getApplicationIcon(pkg) } catch (_: Exception) { null }
+                val appIcon = entry?.icon ?: try { packageManager.getApplicationIcon(pkg) } catch (_: Exception) { null }
+                val isSahl = pkg in sahlPackages || pkg.startsWith("com.sahl.")
                 if (appIcon != null) {
-                    addView(ImageView(this@MainActivity).apply { setImageDrawable(appIcon) },
-                        FrameLayout.LayoutParams(px(34), px(34), Gravity.CENTER))
+                    if (!isSahl && IslamicHomeData.frameThirdParty(this@MainActivity)) {
+                        background = round(0xFF0B5D4B.toInt(), 16f, 0xFFD4AF37.toInt())
+                        addView(ImageView(this@MainActivity).apply { setImageDrawable(appIcon) },
+                            FrameLayout.LayoutParams(px(36), px(36), Gravity.CENTER))
+                    } else {
+                        // Sahl icons already have their emerald & gold seal frame — render crisp & unboxed!
+                        addView(ImageView(this@MainActivity).apply { setImageDrawable(appIcon) },
+                            FrameLayout.LayoutParams(px(48), px(48), Gravity.CENTER))
+                    }
                 } else {
-                    addView(icon(fallbackIcon, 0xFFF5C84C.toInt(), 24),
+                    background = round(0xFF0B5D4B.toInt(), 16f, 0xFFD4AF37.toInt())
+                    addView(icon(R.drawable.ic_star, 0xFFF5C84C.toInt(), 24),
                         FrameLayout.LayoutParams(px(24), px(24), Gravity.CENTER))
                 }
+
+                // Live Gold Notification Badge
+                val badgeCount = BadgeListenerService.countFor(pkg)
+                if (badgeCount > 0) {
+                    addView(buildGoldBadgeView(badgeCount),
+                        FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.END))
+                }
+
                 setOnClickListener { launchPackageOrToast(pkg) }
+                setOnLongClickListener {
+                    if (entry != null) showAppContextMenu(entry)
+                    true
+                }
             }.press(16f)
-            dock.addView(cell, LinearLayout.LayoutParams(px(50), px(50)).apply {
-                setMargins(px(10), 0, px(10), 0)
+            bottomDockRow.addView(cell, LinearLayout.LayoutParams(px(52), px(52)).apply {
+                setMargins(px(8), 0, px(8), 0)
             })
         }
-        // 5th dock button: Wallpaper Studio
-        val wpBtn = FrameLayout(this).apply {
+
+        // All Apps Drawer button in the dock
+        val allAppsBtn = FrameLayout(this).apply {
             background = round(0xFF0B5D4B.toInt(), 16f, 0xFFD4AF37.toInt())
-            addView(icon(R.drawable.ic_wallpaper, 0xFFF5C84C.toInt(), 24),
+            addView(icon(R.drawable.ic_apps, 0xFFF5C84C.toInt(), 24),
                 FrameLayout.LayoutParams(px(24), px(24), Gravity.CENTER))
-            setOnClickListener { startActivity(Intent(this@MainActivity, WallpaperActivity::class.java)) }
+            setOnClickListener { if (drawerOpen) closeDrawer() else openDrawer() }
         }.press(16f)
-        dock.addView(wpBtn, LinearLayout.LayoutParams(px(50), px(50)).apply {
-            setMargins(px(10), 0, px(10), 0)
+        bottomDockRow.addView(allAppsBtn, LinearLayout.LayoutParams(px(50), px(50)).apply {
+            setMargins(px(8), 0, px(8), 0)
         })
-        return dock
+    }
+
+    private fun buildGoldBadgeView(count: Int): TextView =
+        text(if (count > 99) "99+" else count.toString(), 9f, 0xFF072A22.toInt(), true).apply {
+            background = round(0xFFF5C84C.toInt(), 10f, 0xFF072A22.toInt())
+            setPadding(px(5), px(1), px(5), px(1))
+            gravity = Gravity.CENTER
+        }
+
+    /**
+     * Builds an app icon cell:
+     *  - Sahl family icons ALREADY contain the emerald & gold seal frame, so they are displayed directly
+     *    at full 54dp crispness without a second box-in-box border.
+     *  - Third-party apps get an optional Sahl emerald & gold frame if enabled in settings.
+     *  - Long-press opens the Nova-class App Shortcuts & Context Menu.
+     */
+    private fun buildAppCell(app: AppEntry, cols: Int, showLabel: Boolean): View {
+        val dm = resources.displayMetrics
+        val cellW = (dm.widthPixels - px(40)) / cols
+        val frame3p = IslamicHomeData.frameThirdParty(this)
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(px(2), px(6), px(2), px(6))
+            layoutParams = GridLayout.LayoutParams().apply { width = cellW }
+
+            val iconStage = FrameLayout(this@MainActivity)
+            if (app.isSahl || !frame3p) {
+                // Render directly with zero double-framing
+                iconStage.addView(ImageView(this@MainActivity).apply {
+                    setImageDrawable(app.icon)
+                }, FrameLayout.LayoutParams(px(52), px(52), Gravity.CENTER))
+            } else {
+                // Wrap non-Sahl app in unified Sahl emerald & gold seal
+                val seal = FrameLayout(this@MainActivity).apply {
+                    background = round(0xFF0B5D4B.toInt(), 16f, 0xFFD4AF37.toInt())
+                    setPadding(px(6), px(6), px(6), px(6))
+                    addView(ImageView(this@MainActivity).apply { setImageDrawable(app.icon) },
+                        FrameLayout.LayoutParams(px(38), px(38), Gravity.CENTER))
+                }
+                iconStage.addView(seal, FrameLayout.LayoutParams(px(52), px(52), Gravity.CENTER))
+            }
+
+            val badgeCount = BadgeListenerService.countFor(app.pkg)
+            if (badgeCount > 0) {
+                iconStage.addView(buildGoldBadgeView(badgeCount),
+                    FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.END))
+            }
+
+            addView(iconStage, LinearLayout.LayoutParams(px(56), px(54)))
+
+            if (showLabel) {
+                val cleanLabel = app.label.removePrefix("Sahl ").removePrefix("سهل ")
+                addView(text(
+                    cleanLabel,
+                    11f,
+                    0xFFF5F3EB.toInt(),
+                    app.isSahl
+                ).apply {
+                    maxLines = 1
+                    ellipsize = TextUtils.TruncateAt.END
+                    gravity = Gravity.CENTER
+                    setShadowLayer(4f, 0f, 1f, 0xCC000000.toInt())
+                    setPadding(0, px(3), 0, 0)
+                })
+            }
+
+            setOnClickListener {
+                closeDrawer()
+                try {
+                    startActivity(
+                        Intent(Intent.ACTION_MAIN)
+                            .addCategory(Intent.CATEGORY_LAUNCHER)
+                            .setComponent(ComponentName(app.pkg, app.activity))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                } catch (_: Exception) {}
+            }
+            setOnLongClickListener {
+                performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                showAppContextMenu(app)
+                true
+            }
+        }.press(14f)
+    }
+
+    /**
+     * Nova-Class Long-Press App Context Menu:
+     * Queries native Android LauncherApps static/dynamic shortcuts + Pin/Unpin Desktop & Dock + Folders + Hide + App Info + Uninstall.
+     */
+    private fun showAppContextMenu(app: AppEntry) {
+        val items = ArrayList<Triple<Int, String, () -> Unit>>()
+
+        // 1. Query native Android App Shortcuts via LauncherApps
+        try {
+            val la = getSystemService(LauncherApps::class.java)
+            if (la != null && la.hasShortcutHostPermission()) {
+                val q = LauncherApps.ShortcutQuery().apply {
+                    setPackage(app.pkg)
+                    setQueryFlags(
+                        LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC or
+                            LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST
+                    )
+                }
+                val shortcuts: List<ShortcutInfo> = la.getShortcuts(q, Process.myUserHandle()) ?: emptyList()
+                for (sc in shortcuts.take(4)) {
+                    val lbl = sc.shortLabel?.toString() ?: sc.longLabel?.toString() ?: continue
+                    items.add(Triple(R.drawable.ic_star, "⚡  $lbl") {
+                        try { la.startShortcut(sc, null, null) } catch (_: Exception) {}
+                    })
+                }
+            }
+        } catch (_: Exception) {}
+
+        // 2. Pin / Unpin Desktop Home Page
+        val pinned = IslamicHomeData.pinnedDesktopPackages(this)
+        if (app.pkg in pinned) {
+            items.add(Triple(R.drawable.ic_close, getString(R.string.unpin_home)) {
+                pinned.remove(app.pkg)
+                IslamicHomeData.savePinnedDesktopPackages(this, pinned)
+                renderDesktopAppsGrid()
+            })
+        } else {
+            items.add(Triple(R.drawable.ic_add, getString(R.string.pin_home)) {
+                pinned.add(app.pkg)
+                IslamicHomeData.savePinnedDesktopPackages(this, pinned)
+                renderDesktopAppsGrid()
+            })
+        }
+
+        // 3. Pin / Unpin Bottom Dock
+        val dock = IslamicHomeData.dockPackages(this)
+        if (app.pkg in dock) {
+            items.add(Triple(R.drawable.ic_close, getString(R.string.unpin_dock)) {
+                dock.remove(app.pkg)
+                IslamicHomeData.saveDockPackages(this, dock)
+                renderBottomDock()
+            })
+        } else if (dock.size < 5) {
+            items.add(Triple(R.drawable.ic_add, getString(R.string.pin_dock)) {
+                dock.add(app.pkg)
+                IslamicHomeData.saveDockPackages(this, dock)
+                renderBottomDock()
+            })
+        }
+
+        // 4. Add to Smart Folder
+        items.add(Triple(R.drawable.ic_apps, getString(R.string.add_to_folder)) {
+            promptAddAppToFolder(app)
+        })
+
+        // 5. Hide / Unhide from App Drawer
+        val hidden = IslamicHomeData.hiddenPackages(this)
+        if (app.pkg in hidden) {
+            items.add(Triple(R.drawable.ic_check, getString(R.string.unhide_app)) {
+                hidden.remove(app.pkg)
+                IslamicHomeData.saveHiddenPackages(this, hidden)
+                filterDrawerApps(drawerSearchInput?.text?.toString() ?: "")
+            })
+        } else {
+            items.add(Triple(R.drawable.ic_close, getString(R.string.hide_app)) {
+                hidden.add(app.pkg)
+                IslamicHomeData.saveHiddenPackages(this, hidden)
+                filterDrawerApps(drawerSearchInput?.text?.toString() ?: "")
+            })
+        }
+
+        // 6. System App Info
+        items.add(Triple(R.drawable.ic_tune, getString(R.string.app_info)) {
+            try {
+                startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${app.pkg}")))
+            } catch (_: Exception) {}
+        })
+
+        // 7. Uninstall
+        items.add(Triple(R.drawable.ic_debloat, getString(R.string.uninstall_app)) {
+            try {
+                startActivity(Intent(Intent.ACTION_DELETE, Uri.parse("package:${app.pkg}")))
+            } catch (_: Exception) {}
+        })
+
+        sheet(app.label, items)
+    }
+
+    private fun promptAddAppToFolder(app: AppEntry) {
+        val ar = resources.configuration.locales[0].language == "ar"
+        val folders = IslamicHomeData.folders(this)
+        val items = folders.map { f ->
+            Triple(R.drawable.ic_apps, if (ar) f.nameAr else f.nameEn) {
+                if (app.pkg !in f.packages) f.packages.add(app.pkg)
+                IslamicHomeData.saveFolders(this, folders)
+                renderFoldersGrid()
+            }
+        }
+        sheet(getString(R.string.add_to_folder), items)
+    }
+
+    private fun promptCreateFolder() {
+        val et = EditText(this).apply {
+            hint = getString(R.string.folder_name_hint)
+            typeface = font
+            setTextColor(col(R.color.text))
+        }
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.new_folder))
+            .setView(et)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val name = et.text?.toString()?.trim().orEmpty()
+                if (name.isNotEmpty()) {
+                    val list = IslamicHomeData.folders(this)
+                    list.add(IslamicHomeData.Folder("f_${System.currentTimeMillis()}", name, name, mutableListOf()))
+                    IslamicHomeData.saveFolders(this, list)
+                    renderFoldersGrid()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun renderFoldersGrid() {
+        foldersGrid.removeAllViews()
+        val ar = resources.configuration.locales[0].language == "ar"
+        val list = IslamicHomeData.folders(this)
+        val dm = resources.displayMetrics
+        val cellW = (dm.widthPixels - px(68)) / 2
+        for (f in list) {
+            val matchedApps = allApps.filter { it.pkg in f.packages }
+            val box = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                background = round(col(R.color.tonal), 18f, 0x66D4AF37)
+                setPadding(px(12), px(10), px(12), px(10))
+                layoutParams = GridLayout.LayoutParams().apply {
+                    width = cellW
+                    setMargins(px(4), px(4), px(4), px(4))
+                }
+                setOnClickListener { openFolderSheet(f, matchedApps) }
+            }.press(18f)
+
+            box.addView(text("۞  " + (if (ar) f.nameAr else f.nameEn), 13f, col(R.color.text), true))
+            val previewRow = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, px(6), 0, 0)
+            }
+            for (app in matchedApps.take(4)) {
+                previewRow.addView(ImageView(this).apply {
+                    setImageDrawable(app.icon)
+                }, LinearLayout.LayoutParams(px(26), px(26)).apply { marginEnd = px(6) })
+            }
+            if (matchedApps.isEmpty()) {
+                previewRow.addView(text("—", 12f, col(R.color.sub)))
+            }
+            box.addView(previewRow)
+            foldersGrid.addView(box)
+        }
+    }
+
+    private fun openFolderSheet(f: IslamicHomeData.Folder, apps: List<AppEntry>) {
+        val ar = resources.configuration.locales[0].language == "ar"
+        val items = apps.map { app ->
+            Triple(R.drawable.ic_star, app.label) {
+                try {
+                    startActivity(
+                        Intent(Intent.ACTION_MAIN)
+                            .addCategory(Intent.CATEGORY_LAUNCHER)
+                            .setComponent(ComponentName(app.pkg, app.activity))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                } catch (_: Exception) {}
+            }
+        }
+        sheet(if (ar) f.nameAr else f.nameEn, items)
+    }
+
+    private fun refreshIslamicSanctuary() {
+        val ar = resources.configuration.locales[0].language == "ar"
+        val ayah = IslamicHomeData.todayAyah()
+        ayahArabicText.text = ayah.ar
+        ayahTranslationText.text = ayah.en
+        ayahTranslationText.visibility = if (ar) View.GONE else View.VISIBLE
+        ayahRefText.text = if (ar) ayah.refAr else ayah.refEn
+
+        val dhikr = IslamicHomeData.currentDhikr()
+        dhikrTitleText.text = "📿  " + (if (ar) dhikr.titleAr else dhikr.titleEn)
+        dhikrBodyText.text = if (ar) dhikr.ar else "${dhikr.ar}\n${dhikr.en}"
+    }
+
+    // ─────────────────── Native Android AppWidgetHost ───────────────────
+
+    private fun pickNewAppWidget() {
+        try {
+            val id = appWidgetHost.allocateAppWidgetId()
+            val pickIntent = Intent(AppWidgetManager.ACTION_APPWIDGET_PICK).apply {
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
+            }
+            startActivityForResult(pickIntent, REQ_PICK_WIDGET)
+        } catch (_: Exception) {}
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode != RESULT_OK || data == null) return
+        val id = data.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
+        if (id == -1) return
+        when (requestCode) {
+            REQ_PICK_WIDGET -> {
+                val info = appWidgetManager.getAppWidgetInfo(id)
+                if (info?.configure != null) {
+                    val cfg = Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE).apply {
+                        component = info.configure
+                        putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
+                    }
+                    startActivityForResult(cfg, REQ_BIND_WIDGET)
+                } else {
+                    attachHostedWidget(id)
+                }
+            }
+            REQ_BIND_WIDGET -> attachHostedWidget(id)
+        }
+    }
+
+    private fun attachHostedWidget(id: Int) {
+        val list = IslamicHomeData.widgetIds(this)
+        if (id !in list) {
+            list.add(id)
+            IslamicHomeData.saveWidgetIds(this, list)
+        }
+        renderHostedWidgets()
+    }
+
+    private fun renderHostedWidgets() {
+        widgetsContainer.removeAllViews()
+        val ids = IslamicHomeData.widgetIds(this)
+        for (id in ids) {
+            val info = appWidgetManager.getAppWidgetInfo(id) ?: continue
+            try {
+                val hv = appWidgetHost.createView(applicationContext, id, info)
+                hv.setAppWidget(id, info)
+                val wrap = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(0, px(4), 0, px(8))
+                }
+                wrap.addView(hv, LinearLayout.LayoutParams(-1, info.minHeight.coerceAtLeast(px(110))))
+                wrap.addView(text(getString(R.string.remove_widget), 11f, col(R.color.danger), true).apply {
+                    gravity = Gravity.END
+                    setPadding(px(4), px(4), px(4), px(4))
+                    setOnClickListener {
+                        try { appWidgetHost.deleteAppWidgetId(id) } catch (_: Exception) {}
+                        val cur = IslamicHomeData.widgetIds(this@MainActivity)
+                        cur.remove(id)
+                        IslamicHomeData.saveWidgetIds(this@MainActivity, cur)
+                        renderHostedWidgets()
+                    }
+                })
+                widgetsContainer.addView(wrap)
+            } catch (_: Exception) {}
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        try { appWidgetHost.startListening() } catch (_: Exception) {}
+    }
+
+    override fun onStop() {
+        try { appWidgetHost.stopListening() } catch (_: Exception) {}
+        super.onStop()
     }
 
     override fun onResume() {
         super.onResume()
         bgBackdrop.style = WallpaperEngine.currentStyle(this)
         bgBackdrop.invalidate()
-        defaultHomeBanner.visibility = if (isDefaultHome()) View.GONE else View.VISIBLE
+        defaultHomeChip.visibility = if (isDefaultHome()) View.GONE else View.VISIBLE
         handler.removeCallbacks(clockTicker)
         clockTicker.run()
         refreshUnionData()
+        refreshIslamicSanctuary()
         loadInstalledApps()
-        val f = IntentFilter(Sahl.ACTION_EVENT)
+        renderHostedWidgets()
+        val f = IntentFilter(Sahl.ACTION_EVENT).apply {
+            addAction(BadgeListenerService.ACTION_BADGES_CHANGED)
+        }
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(unionReceiver, f, Context.RECEIVER_EXPORTED)
         else registerReceiver(unionReceiver, f)
     }
@@ -336,9 +1058,9 @@ class MainActivity : SahlActivity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        // On a home screen launcher, pressing Back clears search instead of exiting
-        if (!searchInput?.text.isNullOrEmpty()) {
-            searchInput?.setText("")
+        when {
+            drawerOpen -> closeDrawer()
+            currentPage != 0 -> switchPage(0)
         }
     }
 
@@ -405,14 +1127,31 @@ class MainActivity : SahlActivity() {
             prayerCountdownText.text = getString(R.string.adhan_not_installed)
             return
         }
+        val ar = resources.configuration.locales[0].language == "ar"
         val now = System.currentTimeMillis()
-        val next = slots.firstOrNull { it.timeMs > now } ?: slots.first()
+        val nextIdx = slots.indexOfFirst { it.timeMs > now }.let { if (it == -1) 0 else it }
+        val next = slots[nextIdx]
+        val prevTimeMs = if (nextIdx > 0) slots[nextIdx - 1].timeMs else (next.timeMs - 6 * 3600_000L)
+        val totalWindow = (next.timeMs - prevTimeMs).coerceAtLeast(60_000L)
+        val elapsed = (now - prevTimeMs).coerceIn(0L, totalWindow)
+        val ratio = (elapsed.toFloat() / totalWindow.toFloat()).coerceIn(0.08f, 1f)
+
+        prayerProgressFill.post {
+            val parentW = (prayerProgressFill.parent as? View)?.width ?: px(260)
+            prayerProgressFill.layoutParams = FrameLayout.LayoutParams((parentW * ratio).toInt(), px(5))
+        }
+
         val diffMin = ((next.timeMs - now).coerceAtLeast(0L) / 60_000L).toInt()
-        val durStr = if (diffMin >= 60) "${diffMin / 60}h ${diffMin % 60}m" else "${diffMin}m"
+        val durStr = if (ar) {
+            if (diffMin >= 60) "${diffMin / 60} س ${diffMin % 60} د" else "$diffMin د"
+        } else {
+            if (diffMin >= 60) "${diffMin / 60}h ${diffMin % 60}m" else "${diffMin}m"
+        }
         val loc = resources.configuration.locales[0]
         val fmt = DateTimeFormatter.ofPattern("HH:mm", loc)
         val timeFormatted = Instant.ofEpochMilli(next.timeMs).atZone(ZoneId.systemDefault()).format(fmt)
-        prayerCountdownText.text = getString(R.string.next_prayer, next.name, durStr, timeFormatted)
+        val localizedNextName = IslamicHomeData.localizedPrayerName(next.name, ar)
+        prayerCountdownText.text = getString(R.string.next_prayer, localizedNextName, durStr, timeFormatted)
 
         val todaySlots = slots.take(5)
         for (s in todaySlots) {
@@ -428,7 +1167,8 @@ class MainActivity : SahlActivity() {
             }
             val fg = if (isNext) 0xFF072A22.toInt() else col(R.color.text)
             val tStr = Instant.ofEpochMilli(s.timeMs).atZone(ZoneId.systemDefault()).format(fmt)
-            pill.addView(text(s.name, 11f, fg, true).apply { gravity = Gravity.CENTER })
+            val pName = IslamicHomeData.localizedPrayerName(s.name, ar)
+            pill.addView(text(pName, 11f, fg, true).apply { gravity = Gravity.CENTER })
             pill.addView(text(tStr, 10f, fg, false).apply { gravity = Gravity.CENTER })
             prayerPillsRow.addView(pill, LinearLayout.LayoutParams(0, -2, 1f).apply {
                 marginEnd = px(4)
@@ -458,11 +1198,12 @@ class MainActivity : SahlActivity() {
             })
             return
         }
-        for (f in favs.take(10)) {
+        for (f in favs.take(12)) {
             val item = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER_HORIZONTAL
-                setPadding(px(6), px(2), px(10), px(2))
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                background = round(col(R.color.tonal), 18f, 0x66D4AF37)
+                setPadding(px(6), px(4), px(10), px(4))
                 setOnClickListener {
                     if (f.number.isNotBlank()) {
                         try {
@@ -472,8 +1213,8 @@ class MainActivity : SahlActivity() {
                         launchPackageOrToast("com.sahl.contacts")
                     }
                 }
-            }
-            val (avFrame, iv, letter) = avatar(46)
+            }.press(18f)
+            val (avFrame, iv, letter) = avatar(30)
             avFrame.background = oval(0xFF0B5D4B.toInt())
             letter.text = f.name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "★"
             Thumbs.load(this, f.photo, iv, letter)
@@ -481,11 +1222,10 @@ class MainActivity : SahlActivity() {
             item.addView(text(f.name, 11f, col(R.color.text), true).apply {
                 maxLines = 1
                 ellipsize = TextUtils.TruncateAt.END
-                maxWidth = px(68)
-                gravity = Gravity.CENTER
-                setPadding(0, px(4), 0, 0)
+                maxWidth = px(82)
+                setPadding(px(6), 0, 0, 0)
             })
-            favContainer.addView(item)
+            favContainer.addView(item, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = px(6) })
         }
     }
 
@@ -500,76 +1240,61 @@ class MainActivity : SahlActivity() {
                 val lbl = ri.loadLabel(pm).toString()
                 val icon = ri.loadIcon(pm)
                 val isSahl = ai.packageName in sahlPackages || ai.packageName.startsWith("com.sahl.")
-                AppEntry(lbl, Norm.text(lbl), ai.packageName, ai.name, icon, isSahl)
+                val cleanName = lbl.removePrefix("Sahl ").removePrefix("سهل ")
+                AppEntry(lbl, Norm.text(lbl), Norm.section(cleanName), ai.packageName, ai.name, icon, isSahl)
             }.sortedWith(compareByDescending<AppEntry> { it.isSahl }.thenBy { it.normKey })
 
             runOnUiThread {
                 allApps.clear()
                 allApps.addAll(entries)
-                renderSahlAppsGrid()
-                filterAllApps(searchInput?.text?.toString() ?: "")
+                renderDesktopAppsGrid()
+                renderBottomDock()
+                renderFoldersGrid()
+                if (drawerOpen) filterDrawerApps(drawerSearchInput?.text?.toString() ?: "")
             }
         }.start()
     }
 
-    private fun renderSahlAppsGrid() {
-        sahlAppsGrid.removeAllViews()
-        val sahlInstalled = allApps.filter { it.isSahl }
-        for (app in sahlInstalled) {
-            sahlAppsGrid.addView(buildAppCell(app, true))
+    private fun renderDesktopAppsGrid() {
+        val cols = IslamicHomeData.gridColumns(this)
+        val showLbl = IslamicHomeData.showLabels(this)
+        desktopAppsGrid.removeAllViews()
+        desktopAppsGrid.columnCount = cols
+        val pinnedPkgs = IslamicHomeData.pinnedDesktopPackages(this)
+        val pinnedApps = allApps.filter { it.pkg in pinnedPkgs || it.isSahl }
+        for (app in pinnedApps.take(cols * 3)) {
+            desktopAppsGrid.addView(buildAppCell(app, cols, showLbl))
         }
     }
 
-    private fun filterAllApps(q: String) {
-        allAppsGrid.removeAllViews()
+    private fun filterDrawerApps(q: String) {
+        val cols = IslamicHomeData.gridColumns(this)
+        drawerAppsGrid.removeAllViews()
+        drawerAppsGrid.columnCount = cols
+        val hidden = IslamicHomeData.hiddenPackages(this)
         val nq = Norm.text(q.trim())
-        val shown = if (nq.isEmpty()) allApps else allApps.filter { it.normKey.contains(nq) || it.pkg.contains(nq) }
-        for (app in shown.take(80)) {
-            allAppsGrid.addView(buildAppCell(app, app.isSahl))
+        val shown = allApps.filter { app ->
+            (showHiddenInDrawer || app.pkg !in hidden) &&
+                (nq.isEmpty() || app.normKey.contains(nq) || app.pkg.contains(nq))
         }
-    }
 
-    private fun buildAppCell(app: AppEntry, goldBorder: Boolean): View {
-        val dm = resources.displayMetrics
-        val cellW = (dm.widthPixels - px(64)) / 4
-        return LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(px(4), px(8), px(4), px(8))
-            layoutParams = GridLayout.LayoutParams().apply { width = cellW }
-            val iconWrap = FrameLayout(this@MainActivity).apply {
-                background = round(
-                    if (goldBorder) 0xFF0B5D4B.toInt() else col(R.color.tonal),
-                    16f,
-                    if (goldBorder) 0xFFD4AF37.toInt() else 0
-                )
-                setPadding(px(6), px(6), px(6), px(6))
-                addView(ImageView(this@MainActivity).apply { setImageDrawable(app.icon) },
-                    FrameLayout.LayoutParams(px(40), px(40), Gravity.CENTER))
-            }
-            addView(iconWrap, LinearLayout.LayoutParams(px(52), px(52)))
-            addView(text(
-                app.label.removePrefix("Sahl ").removePrefix("سهل "),
-                11f,
-                col(R.color.text),
-                goldBorder
-            ).apply {
-                maxLines = 1
-                ellipsize = TextUtils.TruncateAt.END
-                gravity = Gravity.CENTER
-                setPadding(0, px(4), 0, 0)
-            })
-            setOnClickListener {
-                try {
-                    startActivity(
-                        Intent(Intent.ACTION_MAIN)
-                            .addCategory(Intent.CATEGORY_LAUNCHER)
-                            .setComponent(ComponentName(app.pkg, app.activity))
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    )
-                } catch (_: Exception) {}
-            }
-        }.press(14f)
+        // Build fast section bar (A-Z / أ-ي)
+        drawerSectionBar.removeAllViews()
+        val sections = shown.map { it.section }.distinct()
+        for (sec in sections) {
+            val chip = text(sec, 11f, 0xFFF5C84C.toInt(), true).apply {
+                background = round(0x440B5D4B, 10f, 0x66D4AF37)
+                setPadding(px(9), px(3), px(9), px(3))
+                setOnClickListener {
+                    drawerSearchInput?.setText(sec)
+                }
+            }.press(10f)
+            drawerSectionBar.addView(chip, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = px(5) })
+        }
+
+        for (app in shown.take(120)) {
+            drawerAppsGrid.addView(buildAppCell(app, cols, true))
+        }
     }
 
     private fun toggleTorch() {
@@ -590,7 +1315,8 @@ class MainActivity : SahlActivity() {
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
         } catch (_: Exception) {
-            searchInput?.requestFocus()
+            openDrawer()
+            drawerSearchInput?.requestFocus()
         }
     }
 
@@ -606,6 +1332,13 @@ class MainActivity : SahlActivity() {
         val p = Sahl.prefs(this)
         val curLang = p.getString("lang", "system") ?: "system"
         val curTheme = p.getString("theme", "system") ?: "system"
+        val cols = IslamicHomeData.gridColumns(this)
+        val showLbl = IslamicHomeData.showLabels(this)
+        val frame3p = IslamicHomeData.frameThirdParty(this)
+        val dtAct = IslamicHomeData.doubleTapAction(this)
+        val hiddenCount = IslamicHomeData.hiddenPackages(this).size
+        val badgesOn = BadgeListenerService.isEnabled(this)
+
         sheet(
             getString(R.string.settings_title),
             listOf(
@@ -614,6 +1347,49 @@ class MainActivity : SahlActivity() {
                 },
                 Triple(R.drawable.ic_home, getString(R.string.set_default_home)) {
                     askDefaultHomeRole()
+                },
+                Triple(R.drawable.ic_apps, "${getString(R.string.grid_cols_label)}: ${cols}×3") {
+                    IslamicHomeData.setGridColumns(this, if (cols == 4) 5 else 4)
+                    renderDesktopAppsGrid()
+                },
+                Triple(R.drawable.ic_note, "${getString(R.string.show_labels_label)}: ${if (showLbl) "✓" else "✕"}") {
+                    IslamicHomeData.setShowLabels(this, !showLbl)
+                    renderDesktopAppsGrid()
+                },
+                Triple(R.drawable.ic_shield, "${getString(R.string.frame_3p_label)}: ${if (frame3p) "✓" else "✕"}") {
+                    IslamicHomeData.setFrameThirdParty(this, !frame3p)
+                    renderDesktopAppsGrid()
+                    renderBottomDock()
+                },
+                Triple(R.drawable.ic_touch, "${getString(R.string.double_tap_label)}: $dtAct") {
+                    val next = when (dtAct) { "search" -> "wallpapers"; "wallpapers" -> "dim"; else -> "search" }
+                    IslamicHomeData.setDoubleTapAction(this, next)
+                },
+                Triple(
+                    R.drawable.ic_star,
+                    if (badgesOn) getString(R.string.badges_enabled) else getString(R.string.enable_badges)
+                ) {
+                    try {
+                        startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                    } catch (_: Exception) {}
+                },
+                Triple(R.drawable.ic_freeze, getString(R.string.show_hidden_apps, hiddenCount)) {
+                    showHiddenInDrawer = !showHiddenInDrawer
+                    openDrawer()
+                },
+                Triple(R.drawable.ic_save, getString(R.string.backup_export)) {
+                    val json = IslamicHomeData.exportBackupJson(this)
+                    getSystemService(ClipboardManager::class.java)
+                        ?.setPrimaryClip(ClipData.newPlainText("sahl_home_backup", json))
+                    Toast.makeText(this, R.string.backup_saved, Toast.LENGTH_SHORT).show()
+                },
+                Triple(R.drawable.ic_history, getString(R.string.backup_import)) {
+                    val clip = getSystemService(ClipboardManager::class.java)
+                        ?.primaryClip?.getItemAt(0)?.text?.toString()
+                    if (!clip.isNullOrBlank() && IslamicHomeData.importBackupJson(this, clip)) {
+                        Toast.makeText(this, R.string.backup_restored, Toast.LENGTH_SHORT).show()
+                        recreate()
+                    }
                 },
                 Triple(R.drawable.ic_tune, "${getString(R.string.lang_label)}: $curLang") {
                     val next = when (curLang) { "en" -> "ar"; "ar" -> "system"; else -> "en" }
