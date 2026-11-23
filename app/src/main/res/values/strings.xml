@@ -86,4 +86,10 @@
     <string name="export_sound_pack">Save to Music Folder</string>
     <string name="share_sound_pack">Share Pack (.zip)</string>
     <string name="sound_pack_exported">Saved 5 Sahl sounds to Music/SahlSoundPack</string>
+    <string name="wp_mihrab_lock">Mihrab Depth Lock</string>
+    <string name="wp_mihrab_lock_d">Clean upper clock zone with glowing Mihrab arch &amp; hanging lantern</string>
+    <string name="wp_noor_lock">Noor Crescent Lock</string>
+    <string name="wp_noor_lock_d">Lock screen sky with brushed-gold crescent, stars &amp; desert dunes</string>
+    <string name="w_amb_title">Sahl Ambient Glance Pill (4×1)</string>
+    <string name="w_amb_desc">Compact Home &amp; Lock Screen pill with Next Prayer, Hijri date &amp; tap-to-cycle Dhikr.</string>
 </resources>

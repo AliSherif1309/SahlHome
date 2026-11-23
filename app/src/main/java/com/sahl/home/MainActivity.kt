@@ -230,6 +230,21 @@ class MainActivity : SahlActivity() {
                 SahlBarWidget::class.java,
                 emptyList()
             ),
+            LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) }
+        )
+
+        // Widget 4b: Sahl Ambient Glance Pill (Home & Lock Screen 4x1)
+        col.addView(
+            buildWidgetGalleryCard(
+                "🌙  " + getString(R.string.w_amb_title),
+                getString(R.string.w_amb_desc),
+                AmbientPillWidget::class.java,
+                listOf(
+                    Triple("w_amb_prayer", getString(R.string.opt_prayer), true),
+                    Triple("w_amb_dhikr", getString(R.string.opt_dhikr), true),
+                    Triple("w_amb_hijri", getString(R.string.opt_hijri), true)
+                )
+            ),
             LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(18) }
         )
 

@@ -152,6 +152,20 @@
                 android:resource="@xml/widget_sahl_bar_info" />
         </receiver>
 
+        <!-- Widget 4b: Sahl Ambient Glance Pill (Home & Lock Screen 4x1) -->
+        <receiver
+            android:name=".AmbientPillWidget"
+            android:exported="true"
+            android:label="@string/w_amb_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.sahl.home.ACTION_CYCLE_DHIKR" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_ambient_pill_info" />
+        </receiver>
+
         <!-- Widget 5: 1x1 Badgeless Sahl Emerald & Gold Icon (App or Folder — NO corner home logo!) -->
         <receiver
             android:name=".ThemedIconWidget"
