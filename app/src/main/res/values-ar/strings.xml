@@ -86,4 +86,10 @@
     <string name="export_sound_pack">حفظ في مجلد الموسيقى</string>
     <string name="share_sound_pack">مشاركة الباقة (.zip)</string>
     <string name="sound_pack_exported">تم حفظ ٥ أصوات سهل في Music/SahlSoundPack</string>
+    <string name="wp_mihrab_lock">محراب القفل (عمق)</string>
+    <string name="wp_mihrab_lock_d">مساحة علوية صافية لساعة القفل مع محراب مضيء وقنديل ذهبي</string>
+    <string name="wp_noor_lock">هلال النور (للقفل)</string>
+    <string name="wp_noor_lock_d">سماء هادئة لساعة القفل مع هلال ذهبي ونجوم وكثبان</string>
+    <string name="w_amb_title">شريط سهل المحيطي (4×1)</string>
+    <string name="w_amb_desc">شريط مدمج للشاشة الرئيسية والقفل يعرض الصلاة القادمة والهجري والذكر (اضغط لتغيير الذكر).</string>
 </resources>

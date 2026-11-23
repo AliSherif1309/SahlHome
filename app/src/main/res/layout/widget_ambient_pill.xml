@@ -1,0 +1,66 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_amb_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="14dp"
+    android:paddingEnd="14dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
+    android:background="@drawable/widget_bg">
+
+    <TextView
+        android:id="@+id/w_amb_seal"
+        android:fontFamily="@font/thmanyah"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="۞"
+        android:textColor="#F5C84C"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginEnd="10dp"/>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/w_amb_top"
+            android:fontFamily="@font/thmanyah"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#F5C84C"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+
+        <TextView
+            android:id="@+id/w_amb_dhikr"
+            android:fontFamily="@font/thmanyah"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="12.5sp"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/w_amb_hijri"
+        android:fontFamily="@font/thmanyah"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp"
+        android:background="@drawable/widget_pill_bg"
+        android:textColor="#E4EEE9"
+        android:textSize="10.5sp"
+        android:textStyle="bold"
+        android:maxLines="1"/>
+</LinearLayout>

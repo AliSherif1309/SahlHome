@@ -36,6 +36,7 @@ import java.util.Date
  */
 object SahlWidgets {
     const val ACTION_CYCLE_AYAH = "com.sahl.home.ACTION_CYCLE_AYAH"
+    const val ACTION_CYCLE_DHIKR = "com.sahl.home.ACTION_CYCLE_DHIKR"
 
     private fun isAr(c: Context) = c.resources.configuration.locales[0].language == "ar"
 
@@ -296,6 +297,57 @@ object SahlWidgets {
         false
     }
 
+    fun buildAmbientPillViews(c: Context): RemoteViews {
+        val v = RemoteViews(c.packageName, R.layout.widget_ambient_pill)
+        val ar = isAr(c)
+        val showPrayer = opt(c, "w_amb_prayer", true)
+        val showDhikr = opt(c, "w_amb_dhikr", true)
+        val showHijri = opt(c, "w_amb_hijri", true)
+
+        v.setTextViewText(R.id.w_amb_top, queryNextPrayerSummary(c))
+        v.setViewVisibility(R.id.w_amb_top, vis(showPrayer))
+
+        val dhikrs = if (ar) {
+            listOf(
+                "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ",
+                "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+                "اللَّهُ أَكْبَرُ كَبِيرًا",
+                "لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ",
+                "أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ وَأَتُوبُ إِلَيْهِ"
+            )
+        } else {
+            listOf(
+                "SubhanAllahi wa bihamdihi",
+                "Alhamdulillahi Rabbil 'Alamin",
+                "Allahu Akbar",
+                "La ilaha illAllah",
+                "Astaghfirullah al-'Azim"
+            )
+        }
+        val offset = Sahl.prefs(c).getInt("widget_dhikr_offset", 0) % dhikrs.size
+        v.setTextViewText(R.id.w_amb_dhikr, dhikrs[offset])
+        v.setViewVisibility(R.id.w_amb_dhikr, vis(showDhikr))
+
+        val hShort = try {
+            val loc = c.resources.configuration.locales[0]
+            DateTimeFormatter.ofPattern("d MMM", loc).format(HijrahDate.now())
+        } catch (_: Exception) {
+            "Sahl"
+        }
+        v.setTextViewText(R.id.w_amb_hijri, hShort)
+        v.setViewVisibility(R.id.w_amb_hijri, vis(showHijri))
+
+        val cycleIntent = Intent(c, AmbientPillWidget::class.java).setAction(ACTION_CYCLE_DHIKR)
+        val cyclePi = PendingIntent.getBroadcast(
+            c, 7100, cycleIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        v.setOnClickPendingIntent(R.id.w_amb_dhikr, cyclePi)
+        v.setOnClickPendingIntent(R.id.w_amb_top, launchPkgPendingIntent(c, 7101, "com.sahl.adhan"))
+        v.setOnClickPendingIntent(R.id.w_amb_seal, popupPendingIntent(c, 7102, "all_sahl"))
+        v.setOnClickPendingIntent(R.id.w_amb_hijri, launchPkgPendingIntent(c, 7103, "com.sahl.adhan"))
+        return v
+    }
+
     fun updateAll(ctx: Context) {
         val m = AppWidgetManager.getInstance(ctx)
         m.getAppWidgetIds(ComponentName(ctx, AnalogClockWidget::class.java))
@@ -308,6 +360,8 @@ object SahlWidgets {
             .forEach { m.updateAppWidget(it, buildUnionHubViews(ctx)) }
         m.getAppWidgetIds(ComponentName(ctx, SahlBarWidget::class.java))
             .forEach { m.updateAppWidget(it, buildSahlBarViews(ctx)) }
+        m.getAppWidgetIds(ComponentName(ctx, AmbientPillWidget::class.java))
+            .forEach { m.updateAppWidget(it, buildAmbientPillViews(ctx)) }
         m.getAppWidgetIds(ComponentName(ctx, ThemedIconWidget::class.java))
             .forEach { m.updateAppWidget(it, buildThemedIconViews(ctx, it)) }
     }
@@ -349,6 +403,21 @@ class UnionHubWidget : AppWidgetProvider() {
 class SahlBarWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         appWidgetIds.forEach { appWidgetManager.updateAppWidget(it, SahlWidgets.buildSahlBarViews(context)) }
+    }
+}
+
+class AmbientPillWidget : AppWidgetProvider() {
+    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        appWidgetIds.forEach { appWidgetManager.updateAppWidget(it, SahlWidgets.buildAmbientPillViews(context)) }
+    }
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action == SahlWidgets.ACTION_CYCLE_DHIKR) {
+            val p = Sahl.prefs(context)
+            p.edit().putInt("widget_dhikr_offset", (p.getInt("widget_dhikr_offset", 0) + 1) % 5).apply()
+            SahlWidgets.updateAll(context)
+        }
     }
 }
 
