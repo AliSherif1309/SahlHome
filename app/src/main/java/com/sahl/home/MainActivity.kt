@@ -351,6 +351,7 @@ class MainActivity : SahlActivity() {
         setContentView(root)
 
         loadAppsForStyler()
+        BadgeListenerService.syncIfConnected(this)
         SahlWidgets.updateAll(this)
         Updater.scheduleDaily(this)
         checkUpdate(false)
