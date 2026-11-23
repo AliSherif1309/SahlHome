@@ -293,6 +293,17 @@ class MainActivity : SahlActivity() {
         dockableRow.addView(dockableSwitch)
         stylerCard.addView(dockableRow)
 
+        // Toggle 1c: Live Notification Badges (for WhatsApp & 1x1 themed app widgets)
+        val badgeBtn = pillButton(
+            if (BadgeListenerService.isEnabled(this)) getString(R.string.badges_enabled) else getString(R.string.enable_badges),
+            !BadgeListenerService.isEnabled(this)
+        ) {
+            try {
+                startActivity(Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+            } catch (_: Exception) {}
+        }
+        stylerCard.addView(badgeBtn, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) })
+
         // Toggle 2: 3 Icon Border Styles (Full Gold Border / Gold Glyph on Emerald / Emerald Seal)
         val styleModesRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL

@@ -50,7 +50,10 @@
     <string name="sec_icon_styler">4. Sahl Emerald &amp; Gold Icon Styler</string>
     <string name="sec_icon_styler_sub">Choose your border style &amp; whether to include the app name below, then tap any app to pin it</string>
     <string name="icon_label_toggle">Include App Name under icon</string>
-    <string name="icon_dockable_toggle">Dockable Shortcut (allows placing in Bottom Dock)</string>
+    <string name="icon_dockable_toggle">Dockable Shortcut (for Bottom Dock; Android adds small corner logo)</string>
+    <string name="badge_service_name">Sahl Theme Notification Badges</string>
+    <string name="enable_badges">Notification Badges: Tap to Enable (for WhatsApp, etc.)</string>
+    <string name="badges_enabled">Notification Badges: Active ✓</string>
     <string name="style_fill">Full Gold Border</string>
     <string name="style_tint">Gold Glyph on Emerald</string>
     <string name="style_seal">Emerald Seal</string>
