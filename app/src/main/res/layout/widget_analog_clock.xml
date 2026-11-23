@@ -1,0 +1,32 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_aclock_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="6dp">
+
+    <AnalogClock
+        android:id="@+id/w_aclock_view"
+        android:layout_width="156dp"
+        android:layout_height="156dp"
+        android:dial="@drawable/sahl_clock_dial"
+        android:hand_hour="@drawable/sahl_clock_hour"
+        android:hand_minute="@drawable/sahl_clock_minute" />
+
+    <TextView
+        android:id="@+id/w_aclock_hijri"
+        android:fontFamily="@font/thmanyah"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingTop="4dp"
+        android:gravity="center"
+        android:textColor="#F5C84C"
+        android:shadowColor="#CC000000"
+        android:shadowDx="0"
+        android:shadowDy="1"
+        android:shadowRadius="4"
+        android:textSize="11.5sp"
+        android:textStyle="bold"
+        android:maxLines="1" />
+</LinearLayout>

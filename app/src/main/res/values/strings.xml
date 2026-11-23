@@ -22,6 +22,8 @@
     <string name="wp_saved">Saved 4K wallpaper to Pictures/SahlWallpapers</string>
     <string name="sec_widgets">2. Sahl Islamic Home Screen Widgets</string>
     <string name="sec_widgets_sub">Tap the chips below each widget to choose exactly what to show or hide live on your home screen</string>
+    <string name="w_aclock_title">Sahl Analog Clock (2×2)</string>
+    <string name="w_aclock_desc">Classic emerald &amp; gold analog clock dial with gold hour hand, ivory minute hand &amp; optional Hijri date.</string>
     <string name="w_clock_title">Sahl Islamic Clock (4×2)</string>
     <string name="w_clock_desc">Large live digital clock in Thmanyah font with optional Hijri date, Gregorian date &amp; Next Prayer countdown.</string>
     <string name="w_sanctuary_title">Sahl Islamic Sanctuary (4×2)</string>
@@ -48,6 +50,7 @@
     <string name="sec_icon_styler">4. Sahl Emerald &amp; Gold Icon Styler</string>
     <string name="sec_icon_styler_sub">Choose your border style &amp; whether to include the app name below, then tap any app to pin it</string>
     <string name="icon_label_toggle">Include App Name under icon</string>
+    <string name="icon_dockable_toggle">Dockable Shortcut (allows placing in Bottom Dock)</string>
     <string name="style_fill">Full Gold Border</string>
     <string name="style_tint">Gold Glyph on Emerald</string>
     <string name="style_seal">Emerald Seal</string>

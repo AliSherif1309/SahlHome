@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <!-- Crisp Ivory Minute Hand + Gold Center Cap -->
+    <path
+        android:pathData="M97.8,112 L98.5,32 L100,26 L101.5,32 L102.2,112 Z"
+        android:fillColor="#FFF8E7" />
+    <path
+        android:pathData="M100,95.5 A4.5,4.5 0,1 1,99.9 95.5 Z"
+        android:fillColor="#0B5D4B"
+        android:strokeWidth="2"
+        android:strokeColor="#F5C84C" />
+</vector>
