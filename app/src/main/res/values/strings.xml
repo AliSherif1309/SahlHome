@@ -92,4 +92,6 @@
     <string name="wp_noor_lock_d">Lock screen sky with brushed-gold crescent, stars &amp; desert dunes</string>
     <string name="w_amb_title">Sahl Ambient Glance Pill (4×1)</string>
     <string name="w_amb_desc">Compact Home &amp; Lock Screen pill with Next Prayer, Hijri date &amp; tap-to-cycle Dhikr.</string>
+    <string name="restore_prev_title">Restore your previous tone:</string>
+    <string name="sound_restored">Previous system tone restored</string>
 </resources>

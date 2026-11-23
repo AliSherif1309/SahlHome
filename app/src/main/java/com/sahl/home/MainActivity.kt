@@ -43,6 +43,8 @@ class MainActivity : SahlActivity() {
     private val iconStyleButtons = HashMap<Int, TextView>()
     private val soundPlayButtons = HashMap<String, TextView>()
     private val soundChips = ArrayList<Triple<String, Int, TextView>>()
+    private var restoreBox: LinearLayout? = null
+    private val restoreChips = ArrayList<Pair<Int, TextView>>()
     private var pendingSoundAction: (() -> Unit)? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -645,13 +647,45 @@ class MainActivity : SahlActivity() {
                 Toast.makeText(this, R.string.sound_failed, Toast.LENGTH_SHORT).show()
             }
         }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = px(5) })
-        c.addView(exportRow, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(12) })
+        c.addView(exportRow, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) })
 
         val typeOptions = listOf(
             RingtoneManager.TYPE_RINGTONE to R.string.set_ringtone,
             RingtoneManager.TYPE_NOTIFICATION to R.string.set_notification,
             RingtoneManager.TYPE_ALARM to R.string.set_alarm
         )
+
+        val rBox = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = round(col(R.color.tonal), 14f, col(R.color.line))
+            setPadding(px(12), px(10), px(12), px(10))
+        }
+        rBox.addView(text(getString(R.string.restore_prev_title), 12f, col(R.color.sub), true).apply {
+            setPadding(0, 0, 0, px(6))
+        })
+        val rRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        for ((rType, labelRes) in typeOptions) {
+            val chip = text("↩  " + getString(labelRes), 11.5f, col(R.color.text), true).apply {
+                gravity = Gravity.CENTER
+                background = round(col(R.color.card), 10f, col(R.color.gold))
+                setPadding(px(10), px(6), px(10), px(6))
+                setOnClickListener {
+                    runWithWriteSettings {
+                        if (SahlSounds.restorePrevious(this@MainActivity, rType)) {
+                            refreshSoundUi()
+                            Toast.makeText(this@MainActivity, R.string.sound_restored, Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(this@MainActivity, R.string.sound_failed, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }.press(10f)
+            restoreChips.add(rType to chip)
+            rRow.addView(chip, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = px(6) })
+        }
+        rBox.addView(rRow)
+        restoreBox = rBox
+        c.addView(rBox, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(12) })
 
         SahlSounds.items.forEachIndexed { idx, item ->
             if (idx > 0) {
@@ -751,6 +785,14 @@ class MainActivity : SahlActivity() {
                 if (active) col(R.color.gold) else col(R.color.line)
             )
         }
+
+        var anyRestore = false
+        for ((rType, chip) in restoreChips) {
+            val hasPrev = SahlSounds.hasPrevious(this, rType)
+            chip.visibility = if (hasPrev) View.VISIBLE else View.GONE
+            if (hasPrev) anyRestore = true
+        }
+        restoreBox?.visibility = if (anyRestore) View.VISIBLE else View.GONE
     }
 
     private fun runWithWriteSettings(action: () -> Unit) {
