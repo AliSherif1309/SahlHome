@@ -63,4 +63,24 @@
     <string name="lang_label">اللغة</string>
     <string name="theme_label">المظهر</string>
     <string name="check_updates">التحقق من التحديثات</string>
+    <string name="sec_sounds">٥. أصوات ونغمات سهل</string>
+    <string name="sec_sounds_sub">استمع وعيّن نغمات سهل الهادئة لرنين الهاتف والإشعارات والمنبه بلمسة واحدة</string>
+    <string name="apply_sound_pack">تطبيق باقة أصوات سهل الكاملة</string>
+    <string name="sound_pack_applied">تم تطبيق باقة أصوات سهل الكاملة (الرنين والإشعارات والمنبه)</string>
+    <string name="sound_applied">تم تعيين الصوت بنجاح</string>
+    <string name="sound_perm_prompt">اسمح بصلاحية «تعديل إعدادات النظام» لتعيين نغمات سهل</string>
+    <string name="sound_failed">تعذّر تعيين الصوت، تأكد من الصلاحيات</string>
+    <string name="set_ringtone">رنين</string>
+    <string name="set_notification">إشعارات</string>
+    <string name="set_alarm">منبه</string>
+    <string name="snd_hijaz_title">لحن الحجاز</string>
+    <string name="snd_hijaz_desc">عزف هادئ على مقام الحجاز برنين دافئ (نغمة رنين)</string>
+    <string name="snd_chime_title">نغمة سهل الرسمية</string>
+    <string name="snd_chime_desc">نغمة الإشعارات الموحدة في جميع تطبيقات سهل</string>
+    <string name="snd_drop_title">قطرة الزمرد</string>
+    <string name="snd_drop_desc">قطرة هادئة مع رنين متناغم لطيف (إشعارات)</string>
+    <string name="snd_oud_title">رنة العود (بياتي)</string>
+    <string name="snd_oud_desc">جملة قصيرة دافئة على مقام البياتي (إشعارات)</string>
+    <string name="snd_fajr_title">إشراقة الفجر</string>
+    <string name="snd_fajr_desc">أجراس صباحية متصاعدة وهادئة للاستيقاظ المريح (منبه)</string>
 </resources>

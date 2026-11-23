@@ -63,4 +63,24 @@
     <string name="lang_label">Language</string>
     <string name="theme_label">Theme</string>
     <string name="check_updates">Check for updates</string>
+    <string name="sec_sounds">5. Sahl Sounds &amp; Ringtones</string>
+    <string name="sec_sounds_sub">Preview &amp; apply calm acoustic Sahl tones across your phone’s ringtone, notifications &amp; alarm</string>
+    <string name="apply_sound_pack">Apply Full Sahl Sound Pack</string>
+    <string name="sound_pack_applied">Full Sahl Sound Pack applied (Ringtone, Notification &amp; Alarm)</string>
+    <string name="sound_applied">System sound updated</string>
+    <string name="sound_perm_prompt">Allow “Modify system settings” to set Sahl sounds on your phone</string>
+    <string name="sound_failed">Could not apply sound. Check storage/settings permission.</string>
+    <string name="set_ringtone">Ringtone</string>
+    <string name="set_notification">Notification</string>
+    <string name="set_alarm">Alarm</string>
+    <string name="snd_hijaz_title">Sahl Hijaz Melody</string>
+    <string name="snd_hijaz_desc">Calm acoustic Hijaz phrase with warm plucked harmonics (Ringtone)</string>
+    <string name="snd_chime_title">Sahl Signature Chime</string>
+    <string name="snd_chime_desc">The official Sahl notification chime shared across all Sahl apps</string>
+    <string name="snd_drop_title">Emerald Dewdrop</string>
+    <string name="snd_drop_desc">Gentle water-drop &amp; fifth bell resonance (Notification)</string>
+    <string name="snd_oud_title">Oud Pluck (Bayati)</string>
+    <string name="snd_oud_desc">Warm short Maqam Bayati plucked phrase (Notification)</string>
+    <string name="snd_fajr_title">Fajr Dawn Awakening</string>
+    <string name="snd_fajr_desc">Soft ascending morning chimes &amp; warm pad for calm waking (Alarm)</string>
 </resources>
