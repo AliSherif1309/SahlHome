@@ -6,12 +6,7 @@
 
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <uses-permission android:name="android.permission.SET_WALLPAPER_HINTS" />
-    <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
-    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
-    <uses-permission android:name="android.permission.CALL_PHONE" />
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -49,19 +44,14 @@
         android:supportsRtl="true"
         android:theme="@style/SahlTheme">
 
-        <!-- Sahl Home Screen & Nova-Class Launcher -->
+        <!-- Sahl Home Theme, Widgets & 4K Wallpaper Studio (Does NOT hijack your system launcher) -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTask"
-            android:clearTaskOnLaunch="true"
-            android:stateNotNeeded="true"
             android:windowSoftInputMode="stateAlwaysHidden|adjustPan">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-                <category android:name="android.intent.category.HOME" />
-                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
@@ -76,6 +66,54 @@
             </intent-filter>
         </activity>
 
+        <!-- Floating Emerald & Gold Folder Popup over your real home screen -->
+        <activity
+            android:name=".SahlPopupActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity="" />
+
+        <!-- Widget 1: Sahl Islamic Sanctuary (Hijri, Daily Ayah & Adhkar) -->
+        <receiver
+            android:name=".SanctuaryWidget"
+            android:exported="true"
+            android:label="@string/w_sanctuary_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.sahl.home.ACTION_CYCLE_AYAH" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_sanctuary_info" />
+        </receiver>
+
+        <!-- Widget 2: Sahl Union Hub (Next Prayer, Hijri, Search, Qibla, Tools & Sahl Apps) -->
+        <receiver
+            android:name=".UnionHubWidget"
+            android:exported="true"
+            android:label="@string/w_hub_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_union_hub_info" />
+        </receiver>
+
+        <!-- Widget 3: Sahl Apps Dock Bar (Phone, Messages, Adhan, Camera & Sahl Popup) -->
+        <receiver
+            android:name=".SahlBarWidget"
+            android:exported="true"
+            android:label="@string/w_bar_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_sahl_bar_info" />
+        </receiver>
+
         <!-- Dynamic Prayer Sky Live Wallpaper Service -->
         <service
             android:name=".SahlLiveWallpaperService"
@@ -88,17 +126,6 @@
             <meta-data
                 android:name="android.service.wallpaper"
                 android:resource="@xml/live_wallpaper" />
-        </service>
-
-        <!-- Live Notification Badge Listener -->
-        <service
-            android:name=".BadgeListenerService"
-            android:exported="true"
-            android:label="@string/badge_service_name"
-            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
-            <intent-filter>
-                <action android:name="android.service.notification.NotificationListenerService" />
-            </intent-filter>
         </service>
 
         <activity android:name=".CrashActivity" android:exported="false" android:process=":crash" />
