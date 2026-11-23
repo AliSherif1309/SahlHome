@@ -17,6 +17,7 @@ import android.widget.GridLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RemoteViews
+import android.widget.ScrollView
 import java.time.Instant
 import java.time.ZoneId
 import java.time.chrono.HijrahDate
@@ -28,6 +29,7 @@ import java.util.Calendar
  *  1. SanctuaryWidget (4x2): Hijri date, Daily Quranic Ayah, and Morning/Evening Adhkar (tap to cycle Ayahs)
  *  2. UnionHubWidget (4x2): Next Prayer countdown from Sahl Adhan Union + 1-tap Search, Qibla, Tools & Sahl Apps Popup
  *  3. SahlBarWidget (4x1): Compact emerald & gold dock bar for Phone, Messages, Adhan, Camera & Sahl Folder Popup
+ *  4. ThemedIconWidget (1x1): Badgeless Sahl Emerald & Gold App Icon or Folder Icon (NO small parent-app corner badge!)
  */
 object SahlWidgets {
     const val ACTION_CYCLE_AYAH = "com.sahl.home.ACTION_CYCLE_AYAH"
@@ -154,6 +156,62 @@ object SahlWidgets {
         return v
     }
 
+    /**
+     * Builds a BADGELESS 1×1 Sahl Emerald & Gold Icon Widget view for an App or Sahl Folder.
+     * Because it is an AppWidget rather than a Pinned Shortcut, Android NEVER draws the tiny parent-app home badge!
+     */
+    fun buildThemedIconViews(ctx: Context, appWidgetId: Int): RemoteViews {
+        val c = Sahl.wrap(ctx)
+        val p = Sahl.prefs(c)
+
+        // If this widget id hasn't been bound yet, adopt any recently queued pending icon config
+        if (!p.contains("ti_${appWidgetId}_type")) {
+            val pendingType = p.getString("pending_icon_type", null)
+            if (pendingType != null) {
+                SahlThemeShortcuts.bindWidgetId(
+                    c,
+                    appWidgetId,
+                    pendingType,
+                    p.getString("pending_icon_pkg", "") ?: "",
+                    p.getString("pending_icon_act", "") ?: "",
+                    p.getString("pending_icon_label", "Sahl") ?: "Sahl",
+                    p.getString("pending_icon_folder", "all_sahl") ?: "all_sahl"
+                )
+            }
+        }
+
+        val type = p.getString("ti_${appWidgetId}_type", "folder") ?: "folder"
+        val pkg = p.getString("ti_${appWidgetId}_pkg", "") ?: ""
+        val act = p.getString("ti_${appWidgetId}_act", "") ?: ""
+        val label = p.getString("ti_${appWidgetId}_label", "Sahl") ?: "Sahl"
+        val folderId = p.getString("ti_${appWidgetId}_folder", "all_sahl") ?: "all_sahl"
+
+        val v = RemoteViews(c.packageName, R.layout.widget_themed_icon)
+        v.setTextViewText(R.id.w_icon_label, label)
+
+        if (type == "app" && pkg.isNotEmpty()) {
+            val appIcon = try { c.packageManager.getApplicationIcon(pkg) } catch (_: Exception) { null }
+            val bmp = SahlThemeShortcuts.createSahlSealIconBitmap(appIcon, if (appIcon == null) "۞" else null)
+            v.setImageViewBitmap(R.id.w_icon_img, bmp)
+            val launchIntent = if (act.isNotEmpty()) {
+                Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+                    .setComponent(ComponentName(pkg, act)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            } else {
+                c.packageManager.getLaunchIntentForPackage(pkg) ?: Intent(c, MainActivity::class.java)
+            }
+            val pi = PendingIntent.getActivity(
+                c, 3000 + appWidgetId, launchIntent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            v.setOnClickPendingIntent(R.id.w_icon_root, pi)
+        } else {
+            val bmp = SahlThemeShortcuts.createSahlSealIconBitmap(null, "۞")
+            v.setImageViewBitmap(R.id.w_icon_img, bmp)
+            v.setOnClickPendingIntent(R.id.w_icon_root, popupPendingIntent(c, 4000 + appWidgetId, folderId))
+        }
+        return v
+    }
+
     private fun isInstalled(c: Context, pkg: String): Boolean = try {
         c.packageManager.getApplicationInfo(pkg, 0)
         true
@@ -169,6 +227,8 @@ object SahlWidgets {
             .forEach { m.updateAppWidget(it, buildUnionHubViews(ctx)) }
         m.getAppWidgetIds(ComponentName(ctx, SahlBarWidget::class.java))
             .forEach { m.updateAppWidget(it, buildSahlBarViews(ctx)) }
+        m.getAppWidgetIds(ComponentName(ctx, ThemedIconWidget::class.java))
+            .forEach { m.updateAppWidget(it, buildThemedIconViews(ctx, it)) }
     }
 }
 
@@ -199,9 +259,134 @@ class SahlBarWidget : AppWidgetProvider() {
     }
 }
 
+class ThemedIconWidget : AppWidgetProvider() {
+    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        appWidgetIds.forEach { appWidgetManager.updateAppWidget(it, SahlWidgets.buildThemedIconViews(context, it)) }
+    }
+}
+
+/**
+ * Configuration Activity for the 1×1 Badgeless Sahl Icon Widget:
+ *  - If triggered from inside Sahl Theme's 1-tap "Pin to Home", it auto-completes immediately with zero extra dialog!
+ *  - If the user drags the 1×1 "Sahl Icon (No Badge)" widget from the phone's system Widget Picker,
+ *    it opens a picker to choose any Sahl Folder or installed app.
+ */
+class ThemedIconConfigureActivity : SahlActivity() {
+    private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setResult(RESULT_CANCELED)
+        appWidgetId = intent?.extras?.getInt(
+            AppWidgetManager.EXTRA_APPWIDGET_ID,
+            AppWidgetManager.INVALID_APPWIDGET_ID
+        ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
+        if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
+            finish()
+            return
+        }
+
+        // Check if user just tapped an app or folder inside Sahl Theme within the last 15 seconds
+        val p = Sahl.prefs(this)
+        val pendingTime = p.getLong("pending_icon_time", 0L)
+        if (System.currentTimeMillis() - pendingTime < 15_000L) {
+            val type = p.getString("pending_icon_type", "folder") ?: "folder"
+            val pkg = p.getString("pending_icon_pkg", "") ?: ""
+            val act = p.getString("pending_icon_act", "") ?: ""
+            val lbl = p.getString("pending_icon_label", "Sahl") ?: "Sahl"
+            val fid = p.getString("pending_icon_folder", "all_sahl") ?: "all_sahl"
+            p.edit().putLong("pending_icon_time", 0L).commit()
+            completeConfig(type, pkg, act, lbl, fid)
+            return
+        }
+
+        // Otherwise show a clean picker of Sahl Folders + Installed Apps
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(col(R.color.bg))
+        }
+        root.addView(header(getString(R.string.sec_icon_styler), true))
+        val col = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(px(16), px(8), px(16), px(28))
+        }
+
+        val ar = resources.configuration.locales[0].language == "ar"
+        val foldersCard = card()
+        val allFolderTitle = if (ar) "تطبيقات سهل" else "Sahl Apps"
+        foldersCard.addView(text("۞  $allFolderTitle", 16f, col(R.color.emerald), true).apply {
+            setPadding(px(8), px(10), px(8), px(10))
+            setOnClickListener { completeConfig("folder", "", "", allFolderTitle, "all_sahl") }
+        }.press(12f))
+
+        for (f in IslamicHomeData.folders(this)) {
+            val fTitle = if (ar) f.nameAr else f.nameEn
+            foldersCard.addView(text("۞  $fTitle", 15f, col(R.color.text), true).apply {
+                setPadding(px(8), px(10), px(8), px(10))
+                setOnClickListener { completeConfig("folder", "", "", fTitle, f.id) }
+            }.press(12f))
+        }
+        col.addView(foldersCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(14) })
+
+        val appsGrid = GridLayout(this).apply { columnCount = 4 }
+        col.addView(appsGrid, LinearLayout.LayoutParams(-1, -2))
+        root.addView(ScrollView(this).apply { addView(col) }, LinearLayout.LayoutParams(-1, 0, 1f))
+        setContentView(root)
+
+        Thread {
+            val pm = packageManager
+            val mainIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+            val apps = pm.queryIntentActivities(mainIntent, 0).mapNotNull { ri ->
+                val ai = ri.activityInfo ?: return@mapNotNull null
+                if (ai.packageName == packageName) return@mapNotNull null
+                val lbl = ri.loadLabel(pm).toString()
+                MainActivity.AppItem(lbl, Norm.text(lbl), ai.packageName, ai.name, ri.loadIcon(pm))
+            }.sortedBy { it.normKey }
+            runOnUiThread {
+                val cellW = (resources.displayMetrics.widthPixels - px(48)) / 4
+                for (app in apps.take(80)) {
+                    val item = LinearLayout(this).apply {
+                        orientation = LinearLayout.VERTICAL
+                        gravity = Gravity.CENTER_HORIZONTAL
+                        setPadding(px(4), px(8), px(4), px(8))
+                        layoutParams = GridLayout.LayoutParams().apply { width = cellW }
+                        val seal = FrameLayout(this@ThemedIconConfigureActivity).apply {
+                            background = round(0xFF0B5D4B.toInt(), 16f, 0xFFD4AF37.toInt())
+                            setPadding(px(7), px(7), px(7), px(7))
+                            addView(ImageView(this@ThemedIconConfigureActivity).apply {
+                                setImageDrawable(app.icon)
+                            }, FrameLayout.LayoutParams(px(36), px(36), Gravity.CENTER))
+                        }
+                        addView(seal, LinearLayout.LayoutParams(px(50), px(50)))
+                        addView(text(app.label, 11f, col(R.color.text), true).apply {
+                            maxLines = 1
+                            ellipsize = TextUtils.TruncateAt.END
+                            gravity = Gravity.CENTER
+                            setPadding(0, px(4), 0, 0)
+                        })
+                        setOnClickListener {
+                            completeConfig("app", app.pkg, app.activity, app.label, "")
+                        }
+                    }.press(12f)
+                    appsGrid.addView(item)
+                }
+            }
+        }.start()
+    }
+
+    private fun completeConfig(type: String, pkg: String, act: String, label: String, folderId: String) {
+        SahlThemeShortcuts.bindWidgetId(this, appWidgetId, type, pkg, act, label, folderId)
+        val awm = AppWidgetManager.getInstance(this)
+        awm.updateAppWidget(appWidgetId, SahlWidgets.buildThemedIconViews(this, appWidgetId))
+        val res = Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+        setResult(RESULT_OK, res)
+        finish()
+    }
+}
+
 /**
  * Floating Emerald & Gold Popup Folder Activity:
- * Opens directly over the user's real phone home screen when they tap a Sahl Folder shortcut or the "۞ Sahl Apps" widget button!
+ * Opens directly over the user's real phone home screen when they tap a Sahl Folder icon or the "۞ Sahl Apps" widget button!
  */
 class SahlPopupActivity : SahlActivity() {
     private val allSahlPkgs = listOf(
@@ -217,7 +402,7 @@ class SahlPopupActivity : SahlActivity() {
         val ar = resources.configuration.locales[0].language == "ar"
         val folder = IslamicHomeData.folders(this).firstOrNull { it.id == folderId }
         val titleStr = when {
-            folder != null -> if (ar) folder.nameAr else folder.nameEn
+            folder != null -> "۞  " + (if (ar) folder.nameAr else folder.nameEn)
             ar -> "۞  تطبيقات سهل"
             else -> "۞  Sahl Apps"
         }
