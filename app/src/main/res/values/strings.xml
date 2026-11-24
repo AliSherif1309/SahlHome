@@ -94,4 +94,16 @@
     <string name="w_amb_desc">Compact Home &amp; Lock Screen pill with Next Prayer, Hijri date &amp; tap-to-cycle Dhikr.</string>
     <string name="restore_prev_title">Restore your previous tone:</string>
     <string name="sound_restored">Previous system tone restored</string>
+    <string name="wp_lock_preview">Preview Lock Screen Clock</string>
+    <string name="sec_heliboard">6. Sahl HeliBoard Theme &amp; Shortcuts</string>
+    <string name="sec_heliboard_sub">Emerald &amp; Gold HeliBoard color themes + Arabic honorifics, Tashkeel &amp; Hijri date clipboard tools</string>
+    <string name="hb_copy_dark">Copy Dark Theme</string>
+    <string name="hb_copy_light">Copy Light Theme</string>
+    <string name="hb_copy_hijri">Copy Today’s Hijri Date</string>
+    <string name="hb_export">Save to Downloads</string>
+    <string name="hb_share">Share Pack (.zip)</string>
+    <string name="hb_copied">Copied to clipboard — paste in HeliBoard → Appearance → Colors → Load</string>
+    <string name="hb_hijri_copied">Hijri date copied to clipboard</string>
+    <string name="hb_exported">Saved 3 HeliBoard files to Downloads/SahlHeliBoard</string>
+    <string name="hb_guide">How to apply in HeliBoard: Settings → Appearance → Colors → ⋮ → Load (or paste copied theme JSON). Load Sahl_Arabic_Honorifics_Row.json under Secondary Layouts.</string>
 </resources>

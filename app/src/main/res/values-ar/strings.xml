@@ -94,4 +94,16 @@
     <string name="w_amb_desc">شريط مدمج للشاشة الرئيسية والقفل يعرض الصلاة القادمة والهجري والذكر (اضغط لتغيير الذكر).</string>
     <string name="restore_prev_title">الرجوع إلى نغمتك السابقة:</string>
     <string name="sound_restored">تمت استعادة نغمتك السابقة</string>
+    <string name="wp_lock_preview">معاينة ساعة شاشة القفل</string>
+    <string name="sec_heliboard">٦. ثيم واختصارات لوحة مفاتيح HeliBoard</string>
+    <string name="sec_heliboard_sub">ثيمات الزمرد والذهب لـ HeliBoard مع اختصارات الرموز الإسلامية والتشكيل والتاريخ الهجري</string>
+    <string name="hb_copy_dark">نسخ الثيم الداكن</string>
+    <string name="hb_copy_light">نسخ الثيم الفاتح</string>
+    <string name="hb_copy_hijri">نسخ التاريخ الهجري اليوم</string>
+    <string name="hb_export">حفظ في التنزيلات</string>
+    <string name="hb_share">مشاركة الباقة (.zip)</string>
+    <string name="hb_copied">تم النسخ — الصق في HeliBoard ← المظهر ← الألوان ← تحميل</string>
+    <string name="hb_hijri_copied">تم نسخ التاريخ الهجري إلى الحافظة</string>
+    <string name="hb_exported">تم حفظ ٣ ملفات في Downloads/SahlHeliBoard</string>
+    <string name="hb_guide">للتطبيق في HeliBoard: الإعدادات ← المظهر ← الألوان ← تحميل (أو لصق JSON). ويمكنك تحميل صف الرموز والتشكيل في التخطيطات الثانوية.</string>
 </resources>

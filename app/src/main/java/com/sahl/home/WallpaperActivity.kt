@@ -164,9 +164,33 @@ class WallpaperActivity : SahlActivity() {
 
 class WallpaperPreviewView(c: Context) : View(c) {
     var style: String = WallpaperEngine.STYLE_GIRIH
+    var showLockClock: Boolean = false
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        WallpaperEngine.draw(canvas, width.toFloat(), height.toFloat(), style)
+        val w = width.toFloat()
+        val h = height.toFloat()
+        WallpaperEngine.draw(canvas, w, h, style)
+        if (showLockClock) {
+            val light = WallpaperEngine.isLightStyle(style)
+            val ink = if (light) 0xFF1B2A26.toInt() else 0xFFF5F2E9.toInt()
+            val gold = if (light) 0xFF0B5D4B.toInt() else 0xFFF5C84C.toInt()
+            val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                textAlign = android.graphics.Paint.Align.CENTER
+                color = ink
+                textSize = h * 0.19f
+                typeface = try {
+                    android.graphics.Typeface.create(resources.getFont(R.font.thmanyah), android.graphics.Typeface.BOLD)
+                } catch (_: Exception) {
+                    android.graphics.Typeface.DEFAULT_BOLD
+                }
+            }
+            val now = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date())
+            canvas.drawText(now, w * 0.5f, h * 0.24f, p)
+            p.color = gold
+            p.textSize = h * 0.055f
+            val hijri = SahlHeliBoard.todayHijriString(context)
+            canvas.drawText("۞  $hijri", w * 0.5f, h * 0.305f, p)
+        }
     }
 }
