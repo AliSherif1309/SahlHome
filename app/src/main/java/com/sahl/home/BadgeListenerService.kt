@@ -64,7 +64,7 @@ class BadgeListenerService : NotificationListenerService() {
         refreshCounts()
     }
 
-    private fun isRealUnreadNotification(sbn: StatusBarNotification): Boolean {
+    private fun isRealUnreadNotification(sbn: StatusBarNotification, rankingMap: RankingMap?): Boolean {
         if (sbn.isOngoing || !sbn.isClearable) return false
         val n = sbn.notification ?: return false
         val ignoreFlags = Notification.FLAG_ONGOING_EVENT or
@@ -78,15 +78,22 @@ class BadgeListenerService : NotificationListenerService() {
             cat == Notification.CATEGORY_STATUS ||
             cat == Notification.CATEGORY_SYSTEM
         ) return false
+        if (rankingMap != null) {
+            val r = Ranking()
+            if (rankingMap.getRanking(sbn.key, r)) {
+                if (r.importance <= android.app.NotificationManager.IMPORTANCE_MIN) return false
+            }
+        }
         return true
     }
 
     fun refreshCounts() {
         try {
             val active = activeNotifications ?: emptyArray()
+            val rankingMap = try { currentRanking } catch (_: Exception) { null }
             val map = HashMap<String, Int>()
             for (sbn in active) {
-                if (!isRealUnreadNotification(sbn)) continue
+                if (!isRealUnreadNotification(sbn, rankingMap)) continue
                 val n = sbn.notification ?: continue
                 val num = if (n.number > 1) n.number else 1
                 map[sbn.packageName] = (map[sbn.packageName] ?: 0) + num
