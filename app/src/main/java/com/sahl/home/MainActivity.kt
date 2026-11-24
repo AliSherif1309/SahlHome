@@ -184,7 +184,17 @@ class MainActivity : SahlActivity() {
             } catch (_: Exception) {
                 try { startActivity(Intent(WallpaperManager.ACTION_LIVE_WALLPAPER_CHOOSER)) } catch (_: Exception) {}
             }
-        })
+        }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(8) })
+        wpActionsCard.addView(pillButton(getString(R.string.wa_save_both), false) {
+            Thread {
+                val ok1 = WallpaperEngine.save4KToGallery(this, WallpaperEngine.STYLE_WA_DARK)
+                val ok2 = WallpaperEngine.save4KToGallery(this, WallpaperEngine.STYLE_WA_LIGHT)
+                runOnUiThread {
+                    Toast.makeText(this, if (ok1 || ok2) R.string.wa_saved else R.string.sound_failed, Toast.LENGTH_LONG).show()
+                }
+            }.start()
+        }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(8) })
+        wpActionsCard.addView(text(getString(R.string.wa_bubble_tip), 11.5f, col(R.color.sub)))
         col.addView(wpActionsCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(18) })
 
         // ────────────────── SECTION 2: SAHL ISLAMIC HOME SCREEN WIDGETS (WITH ELEMENT TOGGLES!) ──────────────────

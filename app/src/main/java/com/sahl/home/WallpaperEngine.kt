@@ -35,6 +35,8 @@ object WallpaperEngine {
     const val STYLE_QIBLA = "qibla"
     const val STYLE_MIHRAB_LOCK = "mihrab_lock"
     const val STYLE_NOOR_LOCK = "noor_lock"
+    const val STYLE_WA_DARK = "wa_dark"
+    const val STYLE_WA_LIGHT = "wa_light"
     const val STYLE_PRAYER_SKY = "prayer_sky"
 
     data class StyleInfo(val id: String, val titleRes: Int, val descRes: Int, val isLight: Boolean)
@@ -45,7 +47,9 @@ object WallpaperEngine {
         StyleInfo(STYLE_CREAM, R.string.wp_cream, R.string.wp_cream_d, true),
         StyleInfo(STYLE_QIBLA, R.string.wp_qibla, R.string.wp_qibla_d, false),
         StyleInfo(STYLE_MIHRAB_LOCK, R.string.wp_mihrab_lock, R.string.wp_mihrab_lock_d, false),
-        StyleInfo(STYLE_NOOR_LOCK, R.string.wp_noor_lock, R.string.wp_noor_lock_d, false)
+        StyleInfo(STYLE_NOOR_LOCK, R.string.wp_noor_lock, R.string.wp_noor_lock_d, false),
+        StyleInfo(STYLE_WA_DARK, R.string.wp_wa_dark, R.string.wp_wa_dark_d, false),
+        StyleInfo(STYLE_WA_LIGHT, R.string.wp_wa_light, R.string.wp_wa_light_d, true)
     )
 
     fun currentStyle(c: Context): String = Sahl.prefs(c).getString("wp_style", STYLE_GIRIH) ?: STYLE_GIRIH
@@ -64,7 +68,7 @@ object WallpaperEngine {
     }
 
     fun isLightStyle(styleId: String, phase: Int = currentPrayerPhase()): Boolean = when (styleId) {
-        STYLE_CREAM -> true
+        STYLE_CREAM, STYLE_WA_LIGHT -> true
         STYLE_PRAYER_SKY -> phase == 1 || phase == 2
         else -> false
     }
@@ -128,6 +132,20 @@ object WallpaperEngine {
                     floatArrayOf(0f, 0.36f, 0.72f, 1f), Shader.TileMode.CLAMP
                 )
             }
+            STYLE_WA_DARK -> {
+                bgPaint.shader = LinearGradient(
+                    0f, 0f, 0f, h,
+                    intArrayOf(0xFF061712.toInt(), 0xFF0A261E.toInt(), 0xFF071C16.toInt()),
+                    floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP
+                )
+            }
+            STYLE_WA_LIGHT -> {
+                bgPaint.shader = LinearGradient(
+                    0f, 0f, 0f, h,
+                    intArrayOf(0xFFF4F1E6.toInt(), 0xFFEBEFE9.toInt(), 0xFFE4EEE9.toInt()),
+                    floatArrayOf(0f, 0.55f, 1f), Shader.TileMode.CLAMP
+                )
+            }
         }
         canvas.drawRect(0f, 0f, w, h, bgPaint)
 
@@ -149,7 +167,7 @@ object WallpaperEngine {
         val baseR = if (styleId == STYLE_MIHRAB_LOCK) w * 0.34f else w * 0.42f
         val folds = 12
 
-        if (styleId != STYLE_NOOR_LOCK) {
+        if (styleId != STYLE_NOOR_LOCK && styleId != STYLE_WA_DARK && styleId != STYLE_WA_LIGHT) {
             for (ring in 1..3) {
                 val r = baseR * (ring * 0.33f)
                 canvas.drawCircle(cx, cy, r, linePaint)
@@ -222,8 +240,8 @@ object WallpaperEngine {
             }
         }
 
-        // 4. Mihrab Arch Frame (skipped on lock-screen depth styles so top clock zone stays clean)
-        if (styleId != STYLE_MIHRAB_LOCK && styleId != STYLE_NOOR_LOCK) {
+        // 4. Mihrab Arch Frame (skipped on lock-screen depth and WhatsApp chat styles)
+        if (styleId != STYLE_MIHRAB_LOCK && styleId != STYLE_NOOR_LOCK && styleId != STYLE_WA_DARK && styleId != STYLE_WA_LIGHT) {
             val archPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 this.style = Paint.Style.STROKE
                 color = accentGold
@@ -387,6 +405,57 @@ object WallpaperEngine {
                     cubicTo(w * 0.30f, y - amp, w * 0.70f, y + amp, w, y - amp * 0.4f)
                 }
                 canvas.drawPath(edge, duneEdge)
+            }
+        }
+
+        // 8. Sahl WhatsApp Chat Doodle Pattern (delicate 8-fold Islamic stars, diamonds & crescents)
+        if (styleId == STYLE_WA_DARK || styleId == STYLE_WA_LIGHT) {
+            val isDarkWa = styleId == STYLE_WA_DARK
+            val patPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                this.style = Paint.Style.STROKE
+                color = if (isDarkWa) 0x1AF5C84C else 0x160B5D4B
+                strokeWidth = max(1.4f, w / 420f)
+            }
+            val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                this.style = Paint.Style.FILL
+                color = if (isDarkWa) 0x1CD4AF37 else 0x140B5D4B
+            }
+            val step = w / 5.5f
+            val rStar = step * 0.20f
+            var row = 0
+            var y = step * 0.5f
+            while (y < h + step) {
+                val xOffset = if (row % 2 == 1) step * 0.5f else 0f
+                var col = 0
+                var x = -step * 0.25f + xOffset
+                while (x < w + step) {
+                    if ((row + col) % 2 == 0) {
+                        // 8-fold Islamic Rub el Hizb (۞) motif: two overlapping squares
+                        val s = rStar
+                        canvas.drawRect(x - s, y - s, x + s, y + s, patPaint)
+                        canvas.save()
+                        canvas.translate(x, y)
+                        canvas.rotate(45f)
+                        canvas.drawRect(-s, -s, s, s, patPaint)
+                        canvas.restore()
+                        canvas.drawCircle(x, y, s * 0.22f, dotPaint)
+                    } else {
+                        // Small diamond + subtle arch accent
+                        val s = rStar * 0.72f
+                        val p = Path().apply {
+                            moveTo(x, y - s)
+                            lineTo(x + s, y)
+                            lineTo(x, y + s)
+                            lineTo(x - s, y)
+                            close()
+                        }
+                        canvas.drawPath(p, patPaint)
+                    }
+                    x += step
+                    col++
+                }
+                y += step * 0.92f
+                row++
             }
         }
     }

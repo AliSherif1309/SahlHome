@@ -192,5 +192,30 @@ class WallpaperPreviewView(c: Context) : View(c) {
             val hijri = SahlHeliBoard.todayHijriString(context)
             canvas.drawText("۞  $hijri", w * 0.5f, h * 0.305f, p)
         }
+        if (style == WallpaperEngine.STYLE_WA_DARK || style == WallpaperEngine.STYLE_WA_LIGHT) {
+            val isDark = style == WallpaperEngine.STYLE_WA_DARK
+            val density = resources.displayMetrics.density
+            val inBg = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = if (isDark) 0xFF0E2B24.toInt() else 0xFFFFFFFF.toInt()
+            }
+            val outBg = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFF0B5D4B.toInt()
+            }
+            val r = 14f * density
+            val inRect = android.graphics.RectF(w * 0.08f, h * 0.24f, w * 0.66f, h * 0.44f)
+            val outRect = android.graphics.RectF(w * 0.32f, h * 0.52f, w * 0.92f, h * 0.74f)
+            canvas.drawRoundRect(inRect, r, r, inBg)
+            canvas.drawRoundRect(outRect, r, r, outBg)
+
+            val tp = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                textSize = 12f * density
+                color = if (isDark) 0xFFF5F2E9.toInt() else 0xFF1B2A26.toInt()
+                typeface = try { resources.getFont(R.font.thmanyah) } catch (_: Exception) { android.graphics.Typeface.DEFAULT }
+            }
+            val ar = resources.configuration.locales[0].language == "ar"
+            canvas.drawText(if (ar) "السلام عليكم ۞" else "As-salamu alaykum ۞", inRect.left + 12f * density, inRect.centerY() + 4f * density, tp)
+            tp.color = 0xFFFFFFFF.toInt()
+            canvas.drawText(if (ar) "وعليكم السلام ورحمة الله" else "Wa alaykum as-salam!", outRect.left + 12f * density, outRect.centerY() + 4f * density, tp)
+        }
     }
 }
