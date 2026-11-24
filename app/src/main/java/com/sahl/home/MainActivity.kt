@@ -89,9 +89,34 @@ class MainActivity : SahlActivity() {
             setPadding(px(4), px(4), px(4), px(4))
             clipToOutline = true
         }
-        previewView = WallpaperPreviewView(this).apply { style = selectedStyle }
+        previewView = WallpaperPreviewView(this).apply {
+            style = selectedStyle
+            showLockClock = selectedStyle == WallpaperEngine.STYLE_MIHRAB_LOCK || selectedStyle == WallpaperEngine.STYLE_NOOR_LOCK
+        }
         previewFrame.addView(previewView, FrameLayout.LayoutParams(-1, px(240)))
-        col.addView(previewFrame, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) })
+        col.addView(previewFrame, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(8) })
+
+        val lockPreviewChip = text("", 12f, col(R.color.text), true).apply {
+            gravity = Gravity.CENTER
+            setPadding(px(12), px(7), px(12), px(7))
+        }.press(12f)
+        fun refreshLockChip() {
+            val on = previewView.showLockClock
+            lockPreviewChip.text = (if (on) "✓  " else "👁  ") + getString(R.string.wp_lock_preview)
+            lockPreviewChip.setTextColor(if (on) 0xFF072A22.toInt() else col(R.color.text))
+            lockPreviewChip.background = round(
+                if (on) 0xFFF5C84C.toInt() else col(R.color.tonal),
+                12f,
+                if (on) col(R.color.gold) else col(R.color.line)
+            )
+        }
+        refreshLockChip()
+        lockPreviewChip.setOnClickListener {
+            previewView.showLockClock = !previewView.showLockClock
+            previewView.invalidate()
+            refreshLockChip()
+        }
+        col.addView(lockPreviewChip, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) })
 
         val wpGrid = GridLayout(this).apply { columnCount = 2 }
         val wpCellW = (resources.displayMetrics.widthPixels - px(44)) / 2
@@ -106,6 +131,10 @@ class MainActivity : SahlActivity() {
                 setOnClickListener {
                     selectedStyle = st.id
                     previewView.style = st.id
+                    if (st.id == WallpaperEngine.STYLE_MIHRAB_LOCK || st.id == WallpaperEngine.STYLE_NOOR_LOCK) {
+                        previewView.showLockClock = true
+                        refreshLockChip()
+                    }
                     previewView.invalidate()
                     updateWallpaperSelectionBorders()
                 }
@@ -271,6 +300,10 @@ class MainActivity : SahlActivity() {
         // ────────────────── SECTION 5: SAHL SYSTEM SOUND PACK & RINGTONE MANAGER ──────────────────
         col.addView(sectionHeader(getString(R.string.sec_sounds), getString(R.string.sec_sounds_sub)))
         col.addView(buildSoundsSection(), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(18) })
+
+        // ────────────────── SECTION 6: SAHL HELIBOARD KEYBOARD THEME & SHORTCUTS ──────────────────
+        col.addView(sectionHeader(getString(R.string.sec_heliboard), getString(R.string.sec_heliboard_sub)))
+        col.addView(buildHeliBoardSection(), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(18) })
 
         // ────────────────── SECTION 4: SAHL EMERALD & GOLD ICON STYLER ──────────────────
         col.addView(sectionHeader(getString(R.string.sec_icon_styler), getString(R.string.sec_icon_styler_sub)))
@@ -823,5 +856,57 @@ class MainActivity : SahlActivity() {
     override fun onDestroy() {
         SahlSounds.stopPreview()
         super.onDestroy()
+    }
+
+    private fun buildHeliBoardSection(): View {
+        val c = card()
+        val themeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        themeRow.addView(pillButton("🌙  " + getString(R.string.hb_copy_dark), true) {
+            SahlHeliBoard.copyToClipboard(this, "Sahl Emerald Night", SahlHeliBoard.darkThemeJson())
+            Toast.makeText(this, R.string.hb_copied, Toast.LENGTH_LONG).show()
+        }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = px(5) })
+        themeRow.addView(pillButton("☀️  " + getString(R.string.hb_copy_light), false) {
+            SahlHeliBoard.copyToClipboard(this, "Sahl Daylight Cream", SahlHeliBoard.lightThemeJson())
+            Toast.makeText(this, R.string.hb_copied, Toast.LENGTH_LONG).show()
+        }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = px(5) })
+        c.addView(themeRow, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(8) })
+
+        val fileRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        fileRow.addView(pillButton("💾  " + getString(R.string.hb_export), false) {
+            val n = SahlHeliBoard.exportPackToDownloads(this)
+            Toast.makeText(this, if (n > 0) getString(R.string.hb_exported) else getString(R.string.sound_failed), Toast.LENGTH_LONG).show()
+        }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = px(5) })
+        fileRow.addView(pillButton("📤  " + getString(R.string.hb_share), false) {
+            if (!SahlHeliBoard.sharePackZip(this)) {
+                Toast.makeText(this, R.string.sound_failed, Toast.LENGTH_SHORT).show()
+            }
+        }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = px(5) })
+        c.addView(fileRow, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) })
+
+        c.addView(pillButton("📅  " + getString(R.string.hb_copy_hijri) + "  ·  " + SahlHeliBoard.todayHijriString(this), false) {
+            SahlHeliBoard.copyToClipboard(this, "Hijri Date", SahlHeliBoard.todayHijriString(this))
+            Toast.makeText(this, R.string.hb_hijri_copied, Toast.LENGTH_SHORT).show()
+        }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) })
+
+        val honorRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        for (sym in listOf("ﷺ", "ﷻ", "ؓ", "﷽", "۞", "َ", "ُ", "ِ", "ْ", "ّ")) {
+            val chip = text(sym, 16f, col(R.color.text), true).apply {
+                gravity = Gravity.CENTER
+                background = round(col(R.color.tonal), 10f, col(R.color.gold))
+                setPadding(px(12), px(6), px(12), px(6))
+                setOnClickListener {
+                    SahlHeliBoard.copyToClipboard(this@MainActivity, sym, sym)
+                    Toast.makeText(this@MainActivity, sym, Toast.LENGTH_SHORT).show()
+                }
+            }.press(10f)
+            honorRow.addView(chip, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = px(6) })
+        }
+        c.addView(HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(honorRow)
+        }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = px(10) })
+
+        c.addView(text(getString(R.string.hb_guide), 11.5f, col(R.color.sub)))
+        return c
     }
 }
