@@ -59,18 +59,28 @@ object SahlHeliBoard {
     }.toString()
 
     /**
-     * HeliBoard custom single-row layout (for Secondary Layouts -> Number Row or Custom Row)
-     * with Arabic honorifics (ﷺ, ﷻ, ؓ, ﷽, ۞) and Tashkeel diacritics.
+     * HeliBoard custom 3-row layout (for Secondary Layouts -> More symbols or Symbols)
+     * with Arabic numerals, spacious wide honorifics (ﷺ, ﷻ, ﷽, ؓ, ۞), and Tashkeel diacritics.
      */
     fun honorificsRowJson(): String {
-        val keys = listOf("ﷺ", "ﷻ", "ؓ", "﷽", "۞", "َ", "ُ", "ِ", "ْ", "ّ", "ً", "ٌ")
-        val row = JSONArray()
-        for (k in keys) {
-            row.put(JSONObject().apply {
-                put("label", k)
-            })
+        fun rowOf(items: List<Pair<String, Double>>): JSONArray {
+            val arr = JSONArray()
+            for ((label, w) in items) {
+                arr.put(JSONObject().apply {
+                    put("label", label)
+                    put("width", w)
+                })
+            }
+            return arr
         }
-        return JSONArray().apply { put(row) }.toString(2)
+        val row1 = rowOf(listOf("١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩", "٠").map { it to 0.10 })
+        val row2 = rowOf(listOf("ﷺ", "ﷻ", "﷽", "ؓ", "۞").map { it to 0.20 })
+        val row3 = rowOf(listOf("َ", "ُ", "ِ", "ْ", "ّ", "ً", "ٌ", "ٍ").map { it to 0.125 })
+        return JSONArray().apply {
+            put(row1)
+            put(row2)
+            put(row3)
+        }.toString(2)
     }
 
     fun todayHijriString(context: Context): String = try {
