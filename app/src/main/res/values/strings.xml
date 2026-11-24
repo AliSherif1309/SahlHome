@@ -106,4 +106,11 @@
     <string name="hb_hijri_copied">Hijri date copied to clipboard</string>
     <string name="hb_exported">Saved 3 HeliBoard files to Downloads/SahlHeliBoard</string>
     <string name="hb_guide">How to apply in HeliBoard: Settings → Appearance → Colors → ⋮ → Load (or paste copied theme JSON). Load Sahl_Arabic_Honorifics_Row.json under Secondary Layouts.</string>
+    <string name="wp_wa_dark">WhatsApp Emerald (Dark)</string>
+    <string name="wp_wa_dark_d">Chat wallpaper with subtle Islamic stars &amp; #0B5D4B emerald bubble match</string>
+    <string name="wp_wa_light">WhatsApp Cream (Light)</string>
+    <string name="wp_wa_light_d">Daylight parchment chat doodle with #0B5D4B emerald bubble match</string>
+    <string name="wa_save_both">💬  Save WhatsApp Wallpapers (Dark &amp; Light)</string>
+    <string name="wa_saved">Saved both WhatsApp wallpapers to Pictures/SahlWallpapers</string>
+    <string name="wa_bubble_tip">WhatsApp Bubble Color: #0B5D4B (Sahl Emerald) · Gold Accent: #D4AF37. In WhatsApp: Settings → Chats → Default chat theme → pick Dark/Emerald bubble + your saved Sahl wallpaper.</string>
 </resources>
