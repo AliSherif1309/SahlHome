@@ -435,6 +435,7 @@ abstract class SahlActivity : Activity() {
             "com.sahl.files",
             "com.sahl.gallery",
             "com.sahl.camera",
+            "com.aly.sahlpdf",
             "com.sahl.pdf",
             "com.sahl.tools",
             "com.sahl.timer",

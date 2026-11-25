@@ -113,7 +113,7 @@ object IslamicHomeData {
     val defaultDesktopApps = listOf(
         "com.sahl.phone", "com.sahl.contacts", "com.sahl.messages", "com.sahl.adhan",
         "com.sahl.qibla", "com.aly.trueqibla", "com.sahl.files", "com.sahl.gallery",
-        "com.sahl.camera", "com.sahl.tools", "com.aly.sahlsync", "com.sahl.pdf", "com.sahl.timer"
+        "com.sahl.camera", "com.sahl.tools", "com.aly.sahlsync", "com.aly.sahlpdf", "com.sahl.pdf", "com.sahl.timer"
     )
 
     val defaultDockApps = listOf(
@@ -182,7 +182,7 @@ object IslamicHomeData {
             return mutableListOf(
                 Folder(
                     "islamic", "إسلاميات وصلاة", "Islamic & Prayer",
-                    mutableListOf("com.sahl.adhan", "com.sahl.qibla", "com.aly.trueqibla", "com.sahl.pdf")
+                    mutableListOf("com.sahl.adhan", "com.sahl.qibla", "com.aly.trueqibla", "com.aly.sahlpdf", "com.sahl.pdf")
                 ),
                 Folder(
                     "sahl_comm", "تواصل سهل", "Sahl Communication",
@@ -190,7 +190,7 @@ object IslamicHomeData {
                 ),
                 Folder(
                     "sahl_media", "ملفات ومعرض", "Files & Media",
-                    mutableListOf("com.sahl.files", "com.sahl.gallery", "com.sahl.camera", "com.aly.sahlsync")
+                    mutableListOf("com.sahl.files", "com.aly.sahlpdf", "com.sahl.gallery", "com.sahl.camera", "com.aly.sahlsync")
                 ),
                 Folder(
                     "sahl_utils", "أدوات ومؤقت", "Tools & Timer",

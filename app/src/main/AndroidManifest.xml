@@ -24,6 +24,7 @@
         <package android:name="com.sahl.camera" />
         <package android:name="com.sahl.tools" />
         <package android:name="com.aly.sahlsync" />
+        <package android:name="com.aly.sahlpdf" />
         <package android:name="com.sahl.pdf" />
         <package android:name="com.sahl.timer" />
         <provider android:authorities="com.sahl.adhan.union" />
