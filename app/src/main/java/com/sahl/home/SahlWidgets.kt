@@ -560,7 +560,7 @@ class SahlPopupActivity : SahlActivity() {
     private val allSahlPkgs = listOf(
         "com.sahl.phone", "com.sahl.contacts", "com.sahl.messages", "com.sahl.adhan",
         "com.sahl.qibla", "com.aly.trueqibla", "com.sahl.files", "com.sahl.gallery",
-        "com.sahl.camera", "com.sahl.tools", "com.aly.sahlsync", "com.sahl.pdf", "com.sahl.timer",
+        "com.sahl.camera", "com.sahl.tools", "com.aly.sahlsync", "com.aly.sahlpdf", "com.sahl.pdf", "com.sahl.timer",
         "com.sahl.home"
     )
 
