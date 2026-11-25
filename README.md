@@ -1,27 +1,39 @@
 <div align="center">
 
-# Sahl Theme · ثيم وخلفيات سهل
+<img src="docs/banner.svg" alt="Sahl Theme · ثيم وخلفيات سهل" width="100%"/>
 
-**Transform your phone's real Home Screen into a calm Islamic emerald & gold theme — with native Sahl Home Screen Widgets, 4K Wallpapers, Floating Sahl Folders, and Emerald & Gold Icon Styler.**
+<br/><br/>
 
-[![Latest release](https://img.shields.io/github/v/release/AliSherif1309/SahlHome?label=download&color=0B5D4B)](https://github.com/AliSherif1309/SahlHome/releases/latest)
-[![Build](https://github.com/AliSherif1309/SahlHome/actions/workflows/build.yml/badge.svg)](https://github.com/AliSherif1309/SahlHome/actions)
+[![Download APK](https://img.shields.io/github/v/release/AliSherif1309/SahlHome?label=Download%20APK&color=0B5D4B&style=for-the-badge)](https://github.com/AliSherif1309/SahlHome/releases/latest)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/AliSherif1309/SahlHome/build.yml?label=Build&color=1E8A70&style=for-the-badge)](https://github.com/AliSherif1309/SahlHome/actions)
+![Bilingual](https://img.shields.io/badge/Language-Arabic%20%26%20English-D4AF37?style=for-the-badge)
+![Privacy](https://img.shields.io/badge/Privacy-Offline%20%26%20Ad-Free-073D32?style=for-the-badge)
 
 </div>
 
 ---
 
-## Why Sahl Theme?
+## ✨ Highlights
 
-Keep your phone's native system launcher, animations, and gestures — while giving your real Home Screen the signature **Sahl Islamic emerald & gold theme**:
-
-| Feature | What it adds to your phone's real Home Screen |
+| Feature | What it gives you |
 |---|---|
-| **1. Sahl 4K Wallpaper Engine & Live Prayer Sky** | Procedurally renders 4 signature emerald & gold wallpapers at native or `2160×3840` 4K resolution (**Emerald Girih**, **Doha Dusk & Crescent**, **Daylight Cream Mihrab**, and **Qibla Horizon**) with 1-tap apply to Home Screen, Lock Screen, or Both — plus the **Sahl Prayer Sky Live Wallpaper** that shifts palette across Fajr, Dhuhr, Asr, Maghrib, and Isha. |
-| **2. Three Sahl Islamic Home Screen Widgets** | Place directly onto your phone's real Home Screen:<ul><li>**۞ Sahl Islamic Sanctuary (`واحة سهل الإسلامية` — 4×2):** Displays the Hijri date, **Daily Quranic Ayah** (`آية اليوم`), and time-aware **Morning & Evening Adhkar** (`أذكار الصباح والمساء`). Tap the widget anytime to cycle to the next Ayah.</li><li>**🕌 Sahl Union Hub (`محور اتحاد سهل` — 4×2):** Live Next Prayer countdown from **Sahl Adhan** + 1-tap buttons for **Sahl Search**, **Qibla**, **Sahl Tools**, and the floating **Sahl Apps Popup**.</li><li>**📞 Sahl Apps Dock Bar (`شريط تطبيقات سهل` — 4×1):** Compact emerald & gold bar for Phone, Messages, Adhan, Camera, and the Sahl Apps popup.</li></ul> |
-| **3. Sahl Floating Folders (`مجلدات سهل المنبثقة`)** | Pin an emerald & gold **۞ Sahl Apps** (or *Islamic & Prayer*, *Sahl Communication*, *Files & Media*) icon onto your real Home Screen that opens a translucent emerald & gold popup dialog directly over your home screen. |
-| **4. Sahl Emerald & Gold Icon Styler (`صانع أيقونات سهل`)** | Tap any installed app on your phone to wrap its icon in the **Sahl Emerald & Gold Seal Frame** and pin it as a shortcut onto your real Home Screen. |
+| 🎨 **4K Sahl Wallpapers** | Four procedural emerald & gold themes (Emerald Girih, Doha Dusk, Daylight Cream, Qibla Horizon) plus a Prayer Sky Live Wallpaper. |
+| 🕰️ **Analog & Digital Clocks** | Classic 2×2 emerald & gold analog clock with 24h digital dial, plus a 4×2 digital clock with Hijri & Gregorian dates. |
+| 🕌 **Islamic Sanctuary & Union Hub** | Daily Quranic Ayah, Morning & Evening Adhkar, and live Next Prayer countdown right on your home screen. |
+| ✨ **Badgeless Icons & Popups** | Wrap any app in Sahl's emerald & gold seal without corner badges, or pin floating Sahl App folders with live notification counts. |
 
-## Install
+---
 
-Download the latest APK from [Releases](../../releases/latest). The app checks GitHub Releases for updates automatically.
+## 📲 Install in Seconds
+
+1. Tap **[Download Latest APK](https://github.com/AliSherif1309/SahlHome/releases/latest)** above.
+2. Open the downloaded `.apk` file on your Android phone to install.
+3. **Sahl Theme** checks for new versions automatically so you stay up to date in one tap.
+
+---
+
+## 🌿 The Sahl Apps Family · عائلة تطبيقات سهل
+
+A calm, ad-free, bilingual (**Arabic & English**) suite of everyday Android apps crafted in **Emerald & Gold**:
+
+[🕌 Sahl Adhan](https://github.com/AliSherif1309/SahlAdhan) · [🧭 Sahl Qibla](https://github.com/AliSherif1309/SahlQibla) · [📞 Sahl Phone](https://github.com/AliSherif1309/SahlPhone) · [👤 Sahl Contacts](https://github.com/AliSherif1309/SahlContacts) · [💬 Sahl Messages](https://github.com/AliSherif1309/SahlMessages) · [📷 Sahl Camera](https://github.com/AliSherif1309/SahlCamera) · [🖼️ Sahl Gallery](https://github.com/AliSherif1309/SahlGallery) · [📁 Sahl Files](https://github.com/AliSherif1309/SahlFiles) · [📄 Sahl PDF](https://github.com/AliSherif1309/SahlPDF) · [🛠️ Sahl Tools](https://github.com/AliSherif1309/SahlTools) · [☁️ Sahl Sync](https://github.com/AliSherif1309/SahlSync) · [📺 Sahl TV](https://github.com/AliSherif1309/SahlTV-Launcher)
